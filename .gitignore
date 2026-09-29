@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.local
+.DS_Store
+*.log
+tsconfig.tsbuildinfo
+.vite/
+server/node_modules/
+server/.env
+*.db
+*.db-*
+.deploy.lock
+.cursor/

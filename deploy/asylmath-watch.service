@@ -1,0 +1,8 @@
+[Unit]
+Description=MATH ASYL git autodeploy checker
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/var/www/asylmath
+ExecStart=/var/www/asylmath/deploy/watch.sh
