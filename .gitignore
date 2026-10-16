@@ -12,3 +12,4 @@ server/.env
 *.db-*
 .deploy.lock
 .cursor/
+.figma-ref/
