@@ -185,7 +185,7 @@ export function LandingPage() {
                   <p className="ln-chart__path">32 → 37 → 41 → 45 → <b>48 балл</b></p>
                 </div>
                 <div className="ln-sum">
-                  <Icon name="donut_large" size={28} color="#00236f" />
+                  <Icon name="donut_large" size={26} color="#00236f" />
                   <div>
                     <strong>Жалпы курс бағдарламасы</strong>
                     <span>68% толық меңгерілді</span>

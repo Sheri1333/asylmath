@@ -10,6 +10,7 @@ import { ProgramPage } from "./pages/ProgramPage";
 import { StudyLessonPage } from "./pages/StudyLessonPage";
 import { TestPage } from "./pages/TestPage";
 import "./styles/global.css";
+import "./styles/phone.css";
 
 export function App() {
   return (

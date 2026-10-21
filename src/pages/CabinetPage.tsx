@@ -44,7 +44,7 @@ export function CabinetPage() {
             <article className="cab-hero">
               <i className="cab-hero__blob" />
               <svg className="cab-hero__art" viewBox="0 0 220 180" aria-hidden>
-                <path d="M110 20 L20 160 L200 160 Z" fill="none" stroke="#fff" strokeWidth="3" />
+                <path d="M110 20 L20 160 L200 160 Z" fill="none" stroke="#fff" strokeWidth="3" strokeDasharray="6 6" />
                 <line x1="110" y1="20" x2="110" y2="160" stroke="#fff" strokeWidth="2" />
                 <circle cx="110" cy="20" r="8" fill="#fff" />
                 <circle cx="20" cy="160" r="8" fill="#fff" />

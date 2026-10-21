@@ -8,13 +8,16 @@ const KEY = "asyl-quiz";
 
 type Saved = { picks: Record<number, string>; flags: number[]; done: boolean };
 
+// First visit opens in the state the Figma frame shows: 1–3 answered, A picked on #4, #5 flagged.
+const demo: Saved = { picks: { 0: "A", 1: "B", 2: "B", 3: "A" }, flags: [4], done: false };
+
 function load(): Saved {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { picks: {}, flags: [], done: false };
+    if (!raw) return demo;
     return JSON.parse(raw) as Saved;
   } catch {
-    return { picks: {}, flags: [], done: false };
+    return demo;
   }
 }
 
@@ -55,12 +58,93 @@ export function TestPage() {
 
   const score = useMemo(() => quiz.filter((q, i) => picks[i] === q.answer).length, [picks]);
   const q = quiz[index];
-  const answered = Object.keys(picks).length;
+  const counts = quiz.reduce(
+    (acc, _, i) => {
+      if (i === index) return acc;
+      if (flags.includes(i)) acc.flag += 1;
+      else if (picks[i]) acc.ans += 1;
+      return acc;
+    },
+    { ans: 0, flag: 0 },
+  );
   const pct = Math.round(((index + 1) / quiz.length) * 100);
   const toggleFlag = () => setFlags((f) => (f.includes(index) ? f.filter((n) => n !== index) : [...f, index]));
 
   return (
-    <Shell variant="study" subtitle="Тақырып тесті" flush>
+    <Shell variant="study" subtitle="Курс" flush streak={false}>
+      {/* Phone layout — frame 1:2 ("Тақырып тесті және нәтижесі (Mobile)") */}
+      <div className="qm">
+        <div className="qm-switch">
+          <button type="button" className={mode === "quiz" ? "on" : ""} onClick={() => setMode("quiz")}>
+            <Icon name="edit_note" size={16} />Сұрақ барысы (Quiz)
+          </button>
+          <button type="button" className={mode === "result" ? "on" : ""} onClick={() => setMode("result")}>
+            <Icon name="emoji_events" size={16} />Қорытынды нәтиже
+          </button>
+        </div>
+        {mode === "quiz" && (
+          <>
+            <div className="qm-card qm-head">
+              <span className="qm-head__ico"><Icon name="assignment" size={18} /></span>
+              <div>
+                <strong>3.3 Тақырып тесті</strong>
+                <small>Квадрат теңдеулер</small>
+              </div>
+              <Link to="/lesson" className="qm-head__x" aria-label="Тесттен шығу"><Icon name="close" size={16} /></Link>
+            </div>
+            <div className="qm-card qm-prog">
+              <div>
+                <span><b>{index + 1} / {quiz.length} сұрақ</b> <small>({pct}%)</small></span>
+                <span className="qm-prog__chips">
+                  <em className="t"><Icon name="timer" size={14} />{fmt(left)}</em>
+                  <em>Шек: 70%</em>
+                </span>
+              </div>
+              <i><s style={{ width: `${pct}%` }} /></i>
+            </div>
+            <div className="qm-banner">
+              <div>
+                <small>Виет теоремасы</small>
+                <b>x² − (x₁ + x₂)x + x₁x₂ = 0</b>
+              </div>
+              <span><Icon name="calculate" size={22} /></span>
+            </div>
+            <article className="qm-q">
+              <header>
+                <span>Сұрақ #{index + 1}</span>
+                <small><Icon name="star" size={16} color="#fd761a" />1 ұпай</small>
+              </header>
+              <p className="qm-q__text">{mathify(q.prompt)}</p>
+              <p className="qm-q__hint">Бір дұрыс жауапты таңдаңыз</p>
+              <div className="qm-opts">
+                {q.choices.map((c) => {
+                  const on = picks[index] === c.id;
+                  return (
+                    <button key={c.id} type="button" className={on ? "on" : ""} onClick={() => setPicks({ ...picks, [index]: c.id })}>
+                      <span className="l">{c.id}</span>
+                      <span className="t">{c.label}</span>
+                      <Icon name={on ? "check_circle" : "radio_button_unchecked"} size={on ? 22 : 20} />
+                    </button>
+                  );
+                })}
+              </div>
+            </article>
+            <div className="qm-acts">
+              <button type="button" className={flags.includes(index) ? "qm-flag on" : "qm-flag"} onClick={toggleFlag}>
+                <Icon name="flag" size={18} fill={flags.includes(index)} />Белгілеу
+              </button>
+              <button
+                type="button"
+                className="qm-next"
+                onClick={() => (index === quiz.length - 1 ? setMode("result") : setIndex((i) => i + 1))}
+              >
+                {index === quiz.length - 1 ? "Нәтижені көру" : "Келесі сұрақ"}<Icon name="arrow_forward" size={16} />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
       <div className="qz-ctx">
         <div className="qz-ctx__info">
           <p className="qz-ctx__crumbs">
@@ -212,10 +296,10 @@ export function TestPage() {
                   })}
                 </div>
                 <ul>
-                  <li><i className="ans" />Жауап берілді ({answered})</li>
+                  <li><i className="ans" />Жауап берілді ({counts.ans})</li>
                   <li><i className="cur" />Ағымдағы (1)</li>
-                  <li><i className="flag" />Белгіленген ({flags.length})</li>
-                  <li><i />Ашылмаған ({Math.max(0, quiz.length - answered - (picks[index] ? 0 : 1))})</li>
+                  <li><i className="flag" />Белгіленген ({counts.flag})</li>
+                  <li><i />Ашылмаған ({quiz.length - 1 - counts.ans - counts.flag})</li>
                 </ul>
               </article>
             </aside>

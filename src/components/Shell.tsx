@@ -37,12 +37,14 @@ export function Shell({
   variant = "home",
   subtitle = "Курс",
   flush,
+  streak = variant === "study",
 }: {
   children: ReactNode;
   crumbs?: Crumb[];
   variant?: Variant;
   subtitle?: string;
   flush?: boolean;
+  streak?: boolean;
 }) {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -94,7 +96,7 @@ export function Shell({
           </nav>
         </div>
         <div className="side__bottom">
-          {variant === "study" && (
+          {streak && (
             <div className="side__streak">
               <Icon name="local_fire_department" size={20} color="#9d4300" />
               <span>

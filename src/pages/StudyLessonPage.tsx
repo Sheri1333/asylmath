@@ -29,6 +29,12 @@ export function StudyLessonPage() {
 
   return (
     <Shell variant="study" subtitle="Курс" flush>
+      <MobileLesson
+        playing={playing}
+        sec={sec}
+        onToggle={() => setPlaying((v) => !v)}
+        onPrev={() => setActive((a) => Math.max(1, a - 1))}
+      />
       <div className="les-bar">
         <div className="les-bar__crumbs">
           <span>3-бөлім: Алгебралық теңдеулер</span>
@@ -230,6 +236,118 @@ export function StudyLessonPage() {
         <Link to="/tests" className="les-foot__cta">Тақырып тестіне өту<Icon name="arrow_forward" size={18} /></Link>
       </div>
     </Shell>
+  );
+}
+
+/** Phone layout — frame 1:158 ("Сабақ: Кері Виет теоремасы (Mobile)"). */
+function MobileLesson({
+  playing,
+  sec,
+  onToggle,
+  onPrev,
+}: {
+  playing: boolean;
+  sec: number;
+  onToggle: () => void;
+  onPrev: () => void;
+}) {
+  const [tab, setTab] = useState<"about" | "files" | "lessons">("about");
+  return (
+    <div className="lm">
+      <div className="lm-top">
+        <Link to="/course" className="lm-back"><Icon name="arrow_back" size={16} />3.3 Виет теоремасы</Link>
+        <span className="lm-streak"><Icon name="local_fire_department" size={14} fill color="#fd761a" />3 күн қатарынан</span>
+      </div>
+
+      <div className="lm-player">
+        <img src="/assets/blackboard.jpg" alt="" />
+        <i className="lm-player__scrim" />
+        <div className="lm-player__top">
+          <span><i />HD Сабақ</span>
+          <button type="button" aria-label="Параметрлер"><Icon name="settings" size={18} /></button>
+        </div>
+        <button type="button" className="lm-player__play" onClick={onToggle} aria-label={playing ? "Тоқтату" : "Ойнату"}>
+          <Icon name={playing ? "pause" : "play_arrow"} size={26} fill />
+        </button>
+        <div className="lm-player__ctrl">
+          <i><s style={{ width: `${(sec / TOTAL) * 100}%` }} /></i>
+          <div>
+            <span><Icon name={playing ? "pause" : "play_arrow"} size={14} fill />{fmt(sec)} / {fmt(TOTAL)}</span>
+            <span><b>1.25x</b><Icon name="fullscreen" size={18} /></span>
+          </div>
+        </div>
+      </div>
+
+      <div className="lm-meta">
+        <div className="lm-chips">
+          <span className="ubt">ҰБТ 2025</span>
+          <span><Icon name="schedule" size={14} />14 мин</span>
+          <span>3 / 3 сабақ</span>
+          <span className="alg"><Icon name="verified" size={14} fill />Алгебра</span>
+        </div>
+        <h1>3-сабақ: Кері Виет теоремасы</h1>
+        <p>Квадрат теңдеулердің түбірлері бойынша формула құрастыру шеберлігі.</p>
+      </div>
+
+      <div className="lm-actions">
+        <button type="button" className="lm-prev" onClick={onPrev}><Icon name="chevron_left" size={18} />Алдыңғы</button>
+        <Link to="/tests" className="lm-next">Тақырып тестіне өту<Icon name="arrow_forward" size={16} /></Link>
+      </div>
+
+      <div className="lm-seg">
+        <button type="button" className={tab === "about" ? "on" : ""} onClick={() => setTab("about")}>Сипаттама</button>
+        <button type="button" className={tab === "files" ? "on" : ""} onClick={() => setTab("files")}>Материалдар<b className="brown">(2)</b></button>
+        <button type="button" className={tab === "lessons" ? "on" : ""} onClick={() => setTab("lessons")}>Сабақтар <b>(4)</b></button>
+      </div>
+
+      <div className="lm-body">
+        {tab === "about" && (
+          <>
+            <article className="lm-card">
+              <h3><Icon name="auto_stories" size={22} color="#fd761a" />Сабақ мазмұны</h3>
+              <p className="lm-text">Кері Виет теоремасы берілген түбірлері бойынша бастапқы келтірілген квадрат теңдеуді тез табуға мүмкіндік береді. ҰБТ тестілерінде уақытты 3 есе үнемдейтін ең қуатты әдістердің бірі.</p>
+              <h4>Бұл сабақта үйренесің:</h4>
+              <ul>
+                <li><span><Icon name="check" size={12} /></span>Түбірлердің қосындысы мен көбейтіндісі арқылы теңдеу коэффициенттерін анықтау.</li>
+                <li><span><Icon name="check" size={12} /></span>Бөлшекті немесе иррационал түбірлері бар есептерді жылдам шығару алгоритмі.</li>
+                <li><span><Icon name="check" size={12} /></span>ҰБТ профильдік деңгейіндегі типтік 5 логикалық есепті талдау.</li>
+              </ul>
+            </article>
+            <article className="lm-board">
+              <header><h3>Негізгі формулалар</h3><span>Жаттап ал</span></header>
+              <div className="lm-board__box">
+                <div><span>Түбірлер қосындысы:</span><b>x₁ + x₂ = −p</b></div>
+                <div><span>Түбірлер көбейтіндісі:</span><b>x₁ · x₂ = q</b></div>
+                <div className="lm-board__eq"><span>Келтірілген теңдеу түрі:</span><b>x² − (x₁ + x₂)x + x₁x₂ = 0</b></div>
+              </div>
+              <p>💡 Егер u және v сандары үшін u + v = −p және u · v = q орындалса, онда олар x² + px + q = 0 теңдеуінің түбірлері болады.</p>
+            </article>
+            <article className="lm-tutor">
+              <span>А</span>
+              <div>
+                <strong>Асылбек Тұрсын <Icon name="verified" size={16} fill color="#fd761a" /></strong>
+                <small>ҰБТ 140/140 кураторы · Math Asyl бас оқытушысы</small>
+              </div>
+            </article>
+          </>
+        )}
+        {tab === "files" && <Files />}
+        {tab === "lessons" && (
+          <article className="les-list">
+            {lessons.map((l) => (
+              <div key={l.id} className={l.id === 3 ? "les-item on" : "les-item"}>
+                <span className="les-item__ico">{l.id === 3 ? <Icon name="play_arrow" size={18} fill /> : <Icon name="check" size={18} />}</span>
+                <span className="les-item__body"><strong>{l.id}. {l.title}</strong><small>{l.minutes} мин</small></span>
+              </div>
+            ))}
+            <Link to="/tests" className="les-item les-item--lock">
+              <span className="les-item__ico"><Icon name="lock" size={18} /></span>
+              <span className="les-item__body"><strong>Тақырып тесті</strong><small>10 сұрақ</small></span>
+            </Link>
+          </article>
+        )}
+      </div>
+    </div>
   );
 }
 

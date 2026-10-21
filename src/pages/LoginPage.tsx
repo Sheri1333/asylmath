@@ -39,7 +39,6 @@ export function LoginPage() {
         </Link>
         <h1>Кіру</h1>
         <p className="auth-card__sub">Жеке кабинетке кіріп, оқуды жалғастырыңыз</p>
-        <p className="auth-card__sub">Жеке кабинетке кіріп, оқуды жалғастырыңыз</p>
         {error && <p className="auth-card__error">{error}</p>}
         <label>
           Email
@@ -105,7 +104,6 @@ export function RegisterPage() {
           </span>
         </Link>
         <h1>Тіркелу</h1>
-        <p className="auth-card__sub">Аккаунт ашып, ҰБТ-ға дайындықты бүгін бастаңыз</p>
         <p className="auth-card__sub">Аккаунт ашып, ҰБТ-ға дайындықты бүгін бастаңыз</p>
         {error && <p className="auth-card__error">{error}</p>}
         <label>
