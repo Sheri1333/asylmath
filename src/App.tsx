@@ -11,6 +11,7 @@ import { StudyLessonPage } from "./pages/StudyLessonPage";
 import { TestPage } from "./pages/TestPage";
 import "./styles/global.css";
 import "./styles/phone.css";
+import "./styles/polish.css";
 
 export function App() {
   return (

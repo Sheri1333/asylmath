@@ -1,0 +1,168 @@
+/* Improvements on top of the Figma frames: hero problem, landing nav, interaction states. */
+
+/* ── Hero: the empty right half of the Figma hero now holds a live ҰБТ problem ── */
+.ln-hero { display: grid; grid-template-columns: 683px minmax(0, 1fr); gap: 40px; align-items: center; }
+.ln-try {
+  position: relative;
+  z-index: 1;
+  justify-self: end;
+  width: 100%;
+  max-width: 452px;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: var(--sh-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ln-try header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ln-try__badge, .ln-try__time { display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; padding: 4px 12px; font: 600 12px/16px var(--text); letter-spacing: 0.24px; }
+.ln-try__badge { background: var(--lav); color: var(--navy); }
+.ln-try__time { background: var(--peach); color: #341100; }
+.ln-try__q { font: 600 18px/27px var(--head); color: var(--ink); }
+.ln-try__opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ln-try__opts button {
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: var(--soft2);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  font: 600 15px/20px var(--text);
+  color: var(--ink);
+  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+}
+.ln-try__opts button b { width: 28px; height: 28px; border-radius: 50%; background: #fff; display: grid; place-items: center; flex-shrink: 0; font: 700 13px/1 var(--head); color: var(--navy); }
+.ln-try__opts button:not(:disabled):hover { background: var(--lav); border-color: var(--lav3); }
+.ln-try__opts button:not(:disabled):active { transform: scale(0.98); }
+.ln-try__opts button:disabled { cursor: default; }
+.ln-try__opts button.ok { background: rgba(137, 245, 231, 0.45); border-color: #4ebdb0; color: #00201d; }
+.ln-try__opts button.ok b { background: var(--teal); color: #fff; }
+.ln-try__opts button.bad { background: var(--pink); border-color: #f2a9a2; color: #93000a; }
+.ln-try__opts button.bad b { background: var(--red); color: #fff; }
+.ln-try__opts button.dim { opacity: 0.55; }
+.ln-try__why { min-height: 44px; font: 400 14px/20px var(--text); color: var(--muted); }
+.ln-try__why strong { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; font: 700 14px/20px var(--text); }
+.ln-try__why.ok strong { color: var(--teal); }
+.ln-try__why.bad strong { color: var(--brown); }
+.ln-try footer { display: flex; gap: 8px; }
+.ln-try__next, .ln-try__go { height: 44px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: 600 14px/20px var(--text); letter-spacing: 0.14px; white-space: nowrap; }
+.ln-try__next { flex: 0 0 auto; padding: 0 18px; border: 0; background: var(--soft); color: var(--navy); }
+.ln-try__go { flex: 1; background: var(--blue); color: #fff; box-shadow: 0 2px 4px -2px rgba(30, 111, 255, 0.25), 0 4px 6px -1px rgba(30, 111, 255, 0.25); }
+
+/* ── Landing header anchors ── */
+.ln-nav { display: flex; gap: 28px; }
+.ln-nav a { font: 600 14px/20px var(--text); letter-spacing: 0.14px; color: var(--muted); transition: color 0.15s; }
+.ln-nav a:hover { color: var(--navy); }
+html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+
+/* ── Price on one line (the Figma frame wraps the ₸ sign onto its own line) ── */
+.ln-price__nums { align-items: baseline; flex-wrap: wrap; }
+.ln-price__nums strong { width: auto; white-space: nowrap; }
+.ln-price__nums s { margin-top: 0; white-space: nowrap; }
+
+/* ── Interaction states the static frames can't show ── */
+:focus-visible { outline: 3px solid rgba(30, 111, 255, 0.55); outline-offset: 2px; border-radius: 8px; }
+.ln-btn, .ln-login, .ln-price__pay, .ln-rec__btn, .cab-hero__cta, .les-foot__cta, .les-foot__prev, .qz-next, .qm-next, .lm-next, .prog__btn, .auth-card__btn, .cab-test__btn, .les-files article a {
+  transition: filter 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+.ln-btn:hover, .ln-login:hover, .ln-price__pay:hover, .ln-rec__btn:hover, .cab-hero__cta:hover, .les-foot__cta:hover, .les-foot__prev:hover, .qz-next:hover:not(:disabled), .qm-next:hover, .lm-next:hover, .prog__btn:hover, .auth-card__btn:hover:not(:disabled), .les-files article a:hover { filter: brightness(1.06); }
+.ln-btn:active, .ln-login:active, .ln-price__pay:active, .ln-rec__btn:active, .cab-hero__cta:active, .les-foot__cta:active, .qz-next:active, .qm-next:active, .lm-next:active, .prog__btn:active, .auth-card__btn:active { transform: translateY(1px); }
+.ln-faq button { transition: box-shadow 0.15s; }
+.ln-faq button:hover { box-shadow: 0 2px 8px rgba(0, 35, 111, 0.08); }
+.cab-weak__row a:hover, .cab-card__head > a:hover { text-decoration: underline; }
+.qz-opts button:active, .qm-opts button:active { transform: scale(0.995); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* ── Smaller screens ── */
+@media (max-width: 1240px) {
+  .ln-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); }
+  .ln-hero__left { width: 100%; }
+}
+@media (max-width: 960px) {
+  .ln-nav { display: none; }
+  .ln-hero { grid-template-columns: 1fr; justify-items: center; gap: 24px; }
+  .ln-try { justify-self: center; }
+}
+@media (max-width: 640px) {
+  .ln-try { padding: 18px; border-radius: 20px; }
+  .ln-try__opts { grid-template-columns: 1fr; }
+  .ln-try__q { font-size: 17px; line-height: 25px; }
+  .ln-teacher__bio li b { font-size: 17px; line-height: 24px; white-space: nowrap; }
+  .ln-teacher__bio li span { font-size: 11px; }
+  .ln-hero { padding-top: 56px; }
+  .ln-hero h1 { font-size: 32px; line-height: 40px; }
+}
+
+/* ── Hero text sits left once the problem card is beside it ── */
+@media (min-width: 961px) {
+  .ln-hero__left { align-items: flex-start; text-align: left; }
+  .ln-hero .ln-cta { justify-content: flex-start; }
+}
+@media (max-width: 640px) {
+  .ln-hero .ln-cta { width: 100%; flex-direction: column; align-items: stretch; }
+}
+
+/* ── Auth: form plus a panel that says what the account gives ── */
+.auth-page { grid-template-columns: minmax(0, 420px) minmax(0, 440px); justify-content: center; align-content: center; gap: 24px; align-items: stretch; }
+.auth-aside { justify-self: stretch; }
+.auth-card { align-self: center; }
+.auth-aside {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  padding: 36px;
+  background: linear-gradient(150deg, #00236f 0%, #1e3a8a 60%, #00312c 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.auth-aside__eq { font: 700 15px/20px var(--head); letter-spacing: 0.3px; color: #90a8ff; }
+.auth-aside h2 { font: 700 28px/36px var(--head); letter-spacing: -0.6px; }
+.auth-aside ul { display: flex; flex-direction: column; gap: 12px; }
+.auth-aside li { display: flex; align-items: center; gap: 10px; font: 500 15px/22px var(--text); color: var(--lav); }
+.auth-aside li .ms { color: var(--peach); }
+.auth-aside figure { margin: auto 0 0; display: flex; align-items: baseline; gap: 12px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.15); }
+.auth-aside figure b { font: 700 48px/1 var(--head); letter-spacing: -1px; }
+.auth-aside figcaption { font: 400 14px/20px var(--text); color: var(--lav); }
+@media (max-width: 860px) {
+  .auth-page { grid-template-columns: minmax(0, 420px); }
+  .auth-aside { display: none; }
+}
+
+/* ── Loading ── */
+.boot { min-height: 100vh; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font: 500 14px/20px var(--text); color: var(--muted); }
+.boot img { width: 96px; animation: boot-pulse 1.2s ease-in-out infinite; }
+@keyframes boot-pulse { 50% { opacity: 0.45; } }
+
+/* ── Profile ── */
+.acc__grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.acc__out { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border: 0; border-radius: 9999px; background: var(--pink); color: #93000a; font: 600 14px/20px var(--text); }
+.cab-hello__pills a.pace { text-decoration: none; }
+.acc__empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 12px; background: var(--soft2); font: 400 14px/20px var(--text); color: var(--muted); }
+.acc__courses { display: flex; flex-direction: column; gap: 8px; }
+.acc__courses li { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: var(--soft2); }
+.acc__courses li > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.acc__courses b { font: 600 14px/20px var(--text); color: var(--ink); }
+.acc__courses i { display: block; height: 6px; border-radius: 9999px; background: var(--lav); overflow: hidden; }
+.acc__courses s { display: block; height: 100%; border-radius: 9999px; background: var(--navy); }
+.acc__courses small { font: 400 12px/16px var(--text); color: var(--gray); }
+.acc__courses strong { font: 700 16px/24px var(--head); color: var(--navy); }
+.acc__score { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.acc__score b { font: 700 48px/1 var(--head); letter-spacing: -1px; color: var(--brown); }
+.acc__score b.ok { color: var(--teal); }
+.acc__score b em { font: 600 20px/1 var(--head); font-style: normal; color: var(--gray); }
+.acc__score p { font: 400 14px/20px var(--text); color: var(--muted); }
+.acc__score a { display: inline-flex; align-items: center; gap: 4px; font: 600 14px/20px var(--text); color: var(--navy); }
+@media (max-width: 1100px) { .acc__grid { grid-template-columns: 1fr; } }
+.auth-aside__note { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.15); font: 400 14px/21px var(--text); color: var(--lav); }
+.cab-hello__pills > a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9999px; white-space: nowrap; }

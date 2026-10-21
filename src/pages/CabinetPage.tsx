@@ -53,7 +53,7 @@ export function CabinetPage() {
               <span className="cab-hero__tag"><i />Жалғастыру</span>
               <p className="cab-hero__sec">3-бөлім · Теңдеулер мен теңсіздіктер</p>
               <h2>Виет теоремасы</h2>
-              <p className="cab-hero__text">Квадраттық теңдеулер түбірлерінің қасиеттері мен күрделі<br />параметрлік есептерді шығару тәсілдері.</p>
+              <p className="cab-hero__text">Квадраттық теңдеулер түбірлерінің қасиеттері мен күрделі{" "}<br />параметрлік есептерді шығару тәсілдері.</p>
               <div className="cab-hero__prog">
                 <div><span>Осы тараудың орындалуы</span><b>60%</b></div>
                 <i><s style={{ width: "60%" }} /></i>
@@ -146,7 +146,7 @@ export function CabinetPage() {
                   </svg>
                   <b>34%</b>
                 </div>
-                <small>4 / 11<br />бөлім</small>
+                <small>4 / 11{" "}<br />бөлім</small>
               </article>
               <article>
                 <span className="cab-kpis__ico peach"><Icon name="local_fire_department" size={20} fill color="#9d4300" /></span>
@@ -167,10 +167,10 @@ export function CabinetPage() {
               </header>
               <div className="cab-test__box">
                 <div>
-                  <strong>Сынақ тест<br />№6</strong>
-                  <small>Сенбі,<br />10:00</small>
+                  <strong>Сынақ тест{" "}<br />№6</strong>
+                  <small>Сенбі,{" "}<br />10:00</small>
                 </div>
-                <p>40 тапсырма · 50 балл · ҰБТ<br />нақты форматы</p>
+                <p>40 тапсырма · 50 балл · ҰБТ{" "}<br />нақты форматы</p>
               </div>
               <div className="cab-test__count">
                 <Icon name="timer" size={20} color="#00236f" />
@@ -183,11 +183,11 @@ export function CabinetPage() {
               <header>
                 <div>
                   <span className="cab-weak__ico"><Icon name="priority_high" size={20} /></span>
-                  <h4>Әлсіз<br />тақырыптар</h4>
+                  <h4>Әлсіз{" "}<br />тақырыптар</h4>
                 </div>
-                <small>3<br />тақырып</small>
+                <small>3{" "}<br />тақырып</small>
               </header>
-              <p>Соңғы тексерулер бойынша<br />қайталауды қажет ететін<br />тақырыптар</p>
+              <p>Соңғы тексерулер бойынша{" "}<br />қайталауды қажет ететін{" "}<br />тақырыптар</p>
               {weak.map((w) => (
                 <div key={w.t} className="cab-weak__row">
                   <div><span>{w.t}</span><b style={{ color: w.c }}>{w.v}%</b></div>

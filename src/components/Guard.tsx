@@ -5,7 +5,13 @@ import { useAuth } from "../auth/AuthContext";
 export function Guard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  if (loading) return <p className="boot">Жүктелуде…</p>;
+  if (loading)
+    return (
+      <div className="boot" role="status">
+        <img src="/assets/logo.png" alt="" />
+        <span>Кабинет ашылып жатыр…</span>
+      </div>
+    );
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return children;
 }

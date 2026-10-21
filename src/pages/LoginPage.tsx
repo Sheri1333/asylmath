@@ -1,6 +1,22 @@
 import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { Icon } from "../components/Icon";
+
+function AuthAside() {
+  return (
+    <aside className="auth-aside" aria-hidden>
+      <p className="auth-aside__eq">x² + px + q = 0</p>
+      <h2>Әр сабақтан кейін сенің балың өсіп отырады</h2>
+      <ul>
+        <li><Icon name="play_lesson" size={20} />11 бөлім, 100+ видеосабақ</li>
+        <li><Icon name="quiz" size={20} />Әр тақырыптан кейін мини-тест</li>
+        <li><Icon name="monitoring" size={20} />Апталық сынақ пен өсім графигі</li>
+      </ul>
+      <p className="auth-aside__note">Тіркелгеннен кейін бірінші сабақ пен деңгейді анықтайтын тест бірден ашылады.</p>
+    </aside>
+  );
+}
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -67,6 +83,7 @@ export function LoginPage() {
           Аккаунт жоқ па? <Link to="/register">Тіркелу</Link>
         </p>
       </form>
+      <AuthAside />
     </div>
   );
 }
@@ -143,6 +160,7 @@ export function RegisterPage() {
           Аккаунт бар ма? <Link to="/login">Кіру</Link>
         </p>
       </form>
+      <AuthAside />
     </div>
   );
 }

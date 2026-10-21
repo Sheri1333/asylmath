@@ -57,6 +57,74 @@ function Title({ badge, title, sub, left }: { badge: string; title: string; sub:
   );
 }
 
+const tries = [
+  {
+    q: "x² − 5x + 6 = 0 теңдеуінің түбірлерінің қосындысы неге тең?",
+    options: ["5", "−5", "6", "−6"],
+    answer: 0,
+    why: "Виет теоремасы бойынша x₁ + x₂ = −p. Мұнда p = −5, сондықтан қосынды 5.",
+  },
+  {
+    q: "Түбірлері 3 және −5 болатын келтірілген квадрат теңдеу қайсы?",
+    options: ["x² + 2x − 15 = 0", "x² − 2x − 15 = 0", "x² + 2x + 15 = 0", "x² − 8x + 15 = 0"],
+    answer: 0,
+    why: "Қосынды 3 + (−5) = −2, демек p = 2. Көбейтінді 3 · (−5) = −15, демек q = −15.",
+  },
+  {
+    q: "x² + x − 12 = 0 теңдеуінің түбірлерінің көбейтіндісі неге тең?",
+    options: ["12", "−12", "1", "−1"],
+    answer: 1,
+    why: "Көбейтінді бос мүшеге тең: x₁ · x₂ = q = −12. Таңбасы өзгермейді.",
+  },
+];
+
+/** A real ҰБТ-style problem in the hero: the fastest way to show what the course teaches. */
+function HeroTry({ cta }: { cta: string }) {
+  const [n, setN] = useState(0);
+  const [pick, setPick] = useState<number | null>(null);
+  const t = tries[n];
+  const done = pick !== null;
+  const right = pick === t.answer;
+  return (
+    <aside className="ln-try" aria-labelledby="try-q">
+      <header>
+        <span className="ln-try__badge"><Icon name="functions" size={16} />Есеп {n + 1} / {tries.length}</span>
+        <span className="ln-try__time"><Icon name="timer" size={16} />30 секунд</span>
+      </header>
+      <p id="try-q" className="ln-try__q">{t.q}</p>
+      <div className="ln-try__opts" role="group" aria-label="Жауап нұсқалары">
+        {t.options.map((o, i) => {
+          const state = !done ? "" : i === t.answer ? "ok" : i === pick ? "bad" : "dim";
+          return (
+            <button key={o} type="button" className={state} disabled={done} onClick={() => setPick(i)}>
+              <b>{"ABCD"[i]}</b>
+              {o}
+            </button>
+          );
+        })}
+      </div>
+      <div className={done ? (right ? "ln-try__why ok" : "ln-try__why bad") : "ln-try__why"} aria-live="polite">
+        {done ? (
+          <>
+            <strong><Icon name={right ? "check_circle" : "lightbulb"} size={18} fill={right} />{right ? "Дұрыс!" : "Дұрыс жауап: " + "ABCD"[t.answer]}</strong>
+            <p>{t.why}</p>
+          </>
+        ) : (
+          <p>Жауапты таңдаңыз, шешімін бірден көресіз.</p>
+        )}
+      </div>
+      {done && (
+        <footer>
+          <button type="button" className="ln-try__next" onClick={() => { setN((n + 1) % tries.length); setPick(null); }}>
+            Келесі есеп
+          </button>
+          <Link to={cta} className="ln-try__go">Курсқа жазылу<Icon name="arrow_forward" size={14} /></Link>
+        </footer>
+      )}
+    </aside>
+  );
+}
+
 export function LandingPage() {
   const { user } = useAuth();
   const [open, setOpen] = useState(-1);
@@ -67,6 +135,12 @@ export function LandingPage() {
       <header className="ln-head">
         <div className="ln-head__row">
           <Brand />
+          <nav className="ln-nav" aria-label="Бет бөлімдері">
+            <a href="#program">Бағдарлама</a>
+            <a href="#teacher">Мұғалім</a>
+            <a href="#price">Бағасы</a>
+            <a href="#faq">Сұрақтар</a>
+          </nav>
           <div className="ln-head__actions">
             <Link to={cabinet} className="ln-login">{user ? "Кабинет" : "Кіру"}</Link>
             <Link to={cabinet} className="ln-avatar" aria-label="Профиль">
@@ -89,14 +163,14 @@ export function LandingPage() {
           <div className="ln-hero__left">
             <h1>
               ҰБТ Математикасынан <em>50</em>
-              <br />
+              {" "}<br />
               <em>баллға</em> бірге жетеміз!
             </h1>
             <p>
               Нөлден бастап 50 балға дейін: түсінікті видеосабақтар, апта
-              <br />
+              {" "}<br />
               сайынғы сынақ тесттер және интерактивті жеке өсім
-              <br />
+              {" "}<br />
               аналитикасы.
             </p>
             <div className="ln-cta">
@@ -106,6 +180,7 @@ export function LandingPage() {
               <a href="#program" className="ln-btn ln-btn--soft">Бағдарламаны көру</a>
             </div>
           </div>
+          <HeroTry cta={user ? "/home" : "/register"} />
           <i className="ln-blob ln-blob--a" />
           <i className="ln-blob ln-blob--b" />
         </section>
@@ -196,7 +271,7 @@ export function LandingPage() {
               <div className="ln-mock__right">
                 <div className="ln-weak">
                   <h5><Icon name="warning" size={20} />Әлсіз тақырыптар анықталды</h5>
-                  <p>AI жүйесі соңғы сынақ нәтижесі бойынша<br />2 тақырыпты бекітуді ұсынады:</p>
+                  <p>AI жүйесі соңғы сынақ нәтижесі бойынша{" "}<br />2 тақырыпты бекітуді ұсынады:</p>
                   {[
                     ["Тригонометриялық теңдеулер", 62],
                     ["Стереометрия теоремалары", 55],
@@ -209,9 +284,9 @@ export function LandingPage() {
                 </div>
                 <div className="ln-rec">
                   <h5><Icon name="psychology" size={22} color="#fd761a" />Жеке ұсыныс</h5>
-                  <p>Тек осы қателескен сұрақтар бойынша<br />арнайы 15 минуттық жаттықтыру жинағы<br />дайын.</p>
+                  <p>Тек осы қателескен сұрақтар бойынша{" "}<br />арнайы 15 минуттық жаттықтыру жинағы{" "}<br />дайын.</p>
                   <Link to={cabinet} className="ln-rec__btn">
-                    <span>Қатемен жұмыс тест<br />тапсырмасын бастау</span>
+                    <span>Қатемен жұмыс тест{" "}<br />тапсырмасын бастау</span>
                     <Icon name="play_arrow" size={18} />
                   </Link>
                 </div>
@@ -226,7 +301,7 @@ export function LandingPage() {
             <div className="ln-teacher__photo">
               <figure>
                 <img src="/assets/teacher.png" alt="Асылбек Серікұлы" />
-                <figcaption>ҰБТ сарапшысы • 8 жыл<br />тәжірибе</figcaption>
+                <figcaption>ҰБТ сарапшысы • 8 жыл{" "}<br />тәжірибе</figcaption>
               </figure>
             </div>
             <div className="ln-teacher__bio">
@@ -257,7 +332,7 @@ export function LandingPage() {
             <div className="ln-price__body">
               <div className="ln-price__info">
                 <h3>6 айлық толық кешенді курс</h3>
-                <p>MATH ASYL әдістемесімен нөлден бастап 50 балға дейінгі толық<br />сүйемелдеу</p>
+                <p>MATH ASYL әдістемесімен нөлден бастап 50 балға дейінгі толық{" "}<br />сүйемелдеу</p>
                 <ul>
                   {perks.map((p) => (
                     <li key={p}><Icon name="check_circle" size={20} />{p}</li>
@@ -267,13 +342,13 @@ export function LandingPage() {
               <aside className="ln-price__box">
                 <small>Бағасы</small>
                 <div className="ln-price__nums">
-                  <strong>9 990<br />₸</strong>
-                  <s>19 900<br />₸</s>
+                  <strong>9 990 ₸</strong>
+                  <s>19 900 ₸</s>
                 </div>
                 <span className="ln-price__off">-50% жеңілдік</span>
-                <p>Бір реттік төлем немесе <b>Kaspi Red</b><br />арқылы 3 айға 3 330 ₸-ден бөліп<br />төлеу</p>
+                <p>Бір реттік төлем немесе <b>Kaspi Red</b>{" "}<br />арқылы 3 айға 3 330 ₸-ден бөліп{" "}<br />төлеу</p>
                 <Link to="/register" className="ln-price__pay"><Icon name="qr_code_scanner" size={24} />Kaspi QR арқылы төлеу</Link>
-                <span className="ln-price__safe"><Icon name="lock" size={14} />100% қауіпсіз төлем • Чек дереу<br />поштаңызға жіберіледі</span>
+                <span className="ln-price__safe"><Icon name="lock" size={14} />100% қауіпсіз төлем • Чек дереу{" "}<br />поштаңызға жіберіледі</span>
               </aside>
             </div>
           </div>
@@ -283,7 +358,7 @@ export function LandingPage() {
           <Title badge="Анықтама" title="Жиі қойылатын сұрақтар" sub="Оқушылар мен ата-аналар тарапынан жиі қойылатын сұрақтарға жауаптар" />
           <div className="ln-faq">
             {faqs.map((f, i) => (
-              <button key={f.q} type="button" className={open === i ? "open" : ""} onClick={() => setOpen(open === i ? -1 : i)}>
+              <button key={f.q} type="button" className={open === i ? "open" : ""} aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
                 <span>
                   <strong>{f.q}</strong>
                   <Icon name="expand_more" size={24} />
@@ -299,8 +374,8 @@ export function LandingPage() {
             <i className="ln-final__blob" />
             <span className="ln-final__mark" aria-hidden>50</span>
             <div>
-              <h2>MATH ASYL-мен ҰБТ-ға<br />дайындықты баста!</h2>
-              <p>Мемлекеттік грант иегері болу мүмкіндігін жіберіп алмаңыз.<br />Орындар саны шектеулі.</p>
+              <h2>MATH ASYL-мен ҰБТ-ға{" "}<br />дайындықты баста!</h2>
+              <p>Мемлекеттік грант иегері болу мүмкіндігін жіберіп алмаңыз.{" "}<br />Орындар саны шектеулі.</p>
             </div>
             <div className="ln-cta">
               <Link to="/register" className="ln-btn ln-btn--blue ln-btn--glow">

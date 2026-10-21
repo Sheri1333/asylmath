@@ -82,9 +82,9 @@ export function StudyLessonPage() {
               <span className="les-item__body">
                 <strong>Тақырып тесті</strong>
                 <small>
-                  <Icon name="quiz" size={20} />10<br />сұрақ
+                  <Icon name="quiz" size={20} />10{" "}<br />сұрақ
                   <span className="dot">•</span>
-                  <em>Сабақтардан кейін<br />ашылады 🔒</em>
+                  <em>Сабақтардан кейін{" "}<br />ашылады 🔒</em>
                 </small>
               </span>
             </Link>
@@ -109,7 +109,7 @@ export function StudyLessonPage() {
                 <b>•</b>
                 <span>x₁ • x₂ = q</span>
               </div>
-              <p className="player__cap">Егер x₁ және x₂ сандары берілсе, олар x² − (x₁ + x₂)x + x₁x₂ = 0<br />теңдеуінің түбірлері болады.</p>
+              <p className="player__cap">Егер x₁ және x₂ сандары берілсе, олар x² − (x₁ + x₂)x + x₁x₂ = 0{" "}<br />теңдеуінің түбірлері болады.</p>
             </div>
             <div className="player__top">
               <div>
@@ -163,7 +163,7 @@ export function StudyLessonPage() {
             </div>
             <h1>
               {active === 3 ? (
-                <>3.3 Кері Виет теоремасы — Квадрат<br />теңдеуді түбірлері бойынша құру</>
+                <>3.3 Кері Виет теоремасы — Квадрат{" "}<br />теңдеуді түбірлері бойынша құру</>
               ) : (
                 <>3.3 {current.title}</>
               )}
@@ -206,9 +206,9 @@ export function StudyLessonPage() {
                   <span className="les-formulas__tag">Шпаргалка №14</span>
                 </header>
                 <div className="les-formulas__grid">
-                  <div><small>Түбірлер қосындысы</small><b>x₁ + x₂ = −p</b><span>екінші коэффициент<br />кері таңбамен</span></div>
-                  <div><small>Түбірлер көбейтіндісі</small><b>x₁ • x₂ = q</b><span>бос мүше өз<br />таңбасымен</span></div>
-                  <div><small>Құрылған теңдеу<br />моделі</small><b className="brown">x² − (x₁+x₂)x +<br />(x₁x₂) = 0</b><span>келтірілген теңдеу<br />қалыбы</span></div>
+                  <div><small>Түбірлер қосындысы</small><b>x₁ + x₂ = −p</b><span>екінші коэффициент{" "}<br />кері таңбамен</span></div>
+                  <div><small>Түбірлер көбейтіндісі</small><b>x₁ • x₂ = q</b><span>бос мүше өз{" "}<br />таңбасымен</span></div>
+                  <div><small>Құрылған теңдеу{" "}<br />моделі</small><b className="brown">x² − (x₁+x₂)x +{" "}<br />(x₁x₂) = 0</b><span>келтірілген теңдеу{" "}<br />қалыбы</span></div>
                 </div>
                 <p className="les-formulas__tip">
                   <Icon name="lightbulb" size={22} color="#9d4300" />
