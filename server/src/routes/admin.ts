@@ -5,6 +5,7 @@ import {
   courses,
   enrollments,
   publicCourse,
+  toObjectId,
   users,
   type CourseDoc,
   type LessonDoc,
@@ -219,4 +220,46 @@ adminRouter.get("/users", async (_req, res) => {
       enrollmentsCount: countMap.get(u._id.toHexString()) ?? 0,
     })),
   });
+});
+
+adminRouter.patch("/users/:id", async (req: AuthedRequest, res) => {
+  const id = toObjectId(String(req.params.id));
+  const role = (req.body as { role?: string } | undefined)?.role;
+  if (!id) {
+    res.status(400).json({ error: "Некорректный id" });
+    return;
+  }
+  if (role !== "user" && role !== "admin") {
+    res.status(400).json({ error: "Роль должна быть user или admin" });
+    return;
+  }
+  if (req.user?.id === id.toHexString() && role !== "admin") {
+    res.status(400).json({ error: "Нельзя снять права администратора с себя" });
+    return;
+  }
+  const result = await users().updateOne({ _id: id }, { $set: { role } });
+  if (result.matchedCount === 0) {
+    res.status(404).json({ error: "Пользователь не найден" });
+    return;
+  }
+  res.json({ ok: true });
+});
+
+adminRouter.delete("/users/:id", async (req: AuthedRequest, res) => {
+  const id = toObjectId(String(req.params.id));
+  if (!id) {
+    res.status(400).json({ error: "Некорректный id" });
+    return;
+  }
+  if (req.user?.id === id.toHexString()) {
+    res.status(400).json({ error: "Нельзя удалить свой аккаунт" });
+    return;
+  }
+  const result = await users().deleteOne({ _id: id });
+  if (result.deletedCount === 0) {
+    res.status(404).json({ error: "Пользователь не найден" });
+    return;
+  }
+  await enrollments().deleteMany({ userId: id });
+  res.json({ ok: true });
 });

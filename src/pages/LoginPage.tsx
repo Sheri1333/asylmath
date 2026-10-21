@@ -31,10 +31,15 @@ export function LoginPage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={onSubmit}>
-        <Link to="/" className="brand">
-          <img src="/assets/logo.png" alt="MATH ASYL" />
+        <Link to="/" className="ln-brand">
+          <img src="/assets/logo.png" alt="" />
+          <span>
+            MATH <em>ASYL</em>
+          </span>
         </Link>
         <h1>Кіру</h1>
+        <p className="auth-card__sub">Жеке кабинетке кіріп, оқуды жалғастырыңыз</p>
+        <p className="auth-card__sub">Жеке кабинетке кіріп, оқуды жалғастырыңыз</p>
         {error && <p className="auth-card__error">{error}</p>}
         <label>
           Email
@@ -56,7 +61,7 @@ export function LoginPage() {
             autoComplete="current-password"
           />
         </label>
-        <button type="submit" className="btn btn-blue" disabled={busy}>
+        <button type="submit" className="auth-card__btn" disabled={busy}>
           {busy ? "…" : "Кіру"}
         </button>
         <p className="auth-card__footer">
@@ -93,13 +98,18 @@ export function RegisterPage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={onSubmit}>
-        <Link to="/" className="brand">
-          <img src="/assets/logo.png" alt="MATH ASYL" />
+        <Link to="/" className="ln-brand">
+          <img src="/assets/logo.png" alt="" />
+          <span>
+            MATH <em>ASYL</em>
+          </span>
         </Link>
         <h1>Тіркелу</h1>
+        <p className="auth-card__sub">Аккаунт ашып, ҰБТ-ға дайындықты бүгін бастаңыз</p>
+        <p className="auth-card__sub">Аккаунт ашып, ҰБТ-ға дайындықты бүгін бастаңыз</p>
         {error && <p className="auth-card__error">{error}</p>}
         <label>
-          Имя
+          Аты-жөні
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -128,7 +138,7 @@ export function RegisterPage() {
             autoComplete="new-password"
           />
         </label>
-        <button type="submit" className="btn btn-blue" disabled={busy}>
+        <button type="submit" className="auth-card__btn" disabled={busy}>
           {busy ? "…" : "Аккаунт ашу"}
         </button>
         <p className="auth-card__footer">

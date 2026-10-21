@@ -213,4 +213,17 @@ export const api = {
       }>;
     }>("/admin/users");
   },
+
+  adminSetRole(id: string, role: "user" | "admin") {
+    return request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  adminDeleteUser(id: string) {
+    return request<{ ok: boolean }>(`/admin/users/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  },
 };
