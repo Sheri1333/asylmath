@@ -1,113 +1,52 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import type { CourseSummary } from "../types/course";
+import { fmtMoney } from "../lib/course";
+import type { AdminEnrollment, CourseSummary } from "../types/course";
 
-interface LessonDraft {
-  id?: string;
-  title: string;
-  summary: string;
-  content: string;
-  videoUrl: string;
-  durationMinutes: number;
-  order: number;
-}
+type Tab = "stats" | "courses" | "access" | "users";
+type Stats = { users: number; courses: number; publishedCourses: number; enrollments: number; pending: number };
+type AdminUser = { id: string; email: string; name: string; role: string; createdAt: string; enrollmentsCount: number };
 
-type Level = "beginner" | "intermediate" | "advanced";
-
-interface CourseForm {
-  title: string;
-  slug: string;
-  subject: string;
-  level: Level;
-  description: string;
-  coverColor: string;
-  isFree: boolean;
-  priceTenge: number;
-  published: boolean;
-  lessons: LessonDraft[];
-}
-
-interface AdminUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  createdAt: string;
-  enrollmentsCount: number;
-}
-
-type Stats = { users: number; courses: number; publishedCourses: number; enrollments: number };
-
-const emptyLesson = (order: number): LessonDraft => ({
-  title: "",
-  summary: "",
-  content: "",
-  videoUrl: "",
-  durationMinutes: 15,
-  order,
-});
-
-const emptyForm = (): CourseForm => ({
-  title: "",
-  slug: "",
-  subject: "Математика",
-  level: "beginner",
-  description: "",
-  coverColor: "#00236f",
-  isFree: true,
-  priceTenge: 9990,
-  published: true,
-  lessons: [emptyLesson(1)],
-});
-
-const levels: Record<Level, string> = {
-  beginner: "Начальный",
-  intermediate: "Средний",
-  advanced: "Продвинутый",
-};
-
-const date = (iso: string) => new Date(iso).toLocaleDateString("ru-RU");
+const date = (iso: string) => new Date(iso).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" });
+const dateTime = (iso: string) => new Date(iso).toLocaleString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export function AdminPage() {
-  const { user, loading, isAdmin } = useAuth();
-  const [tab, setTab] = useState<"stats" | "courses" | "users">("stats");
+  const { user } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const tab = (params.get("tab") as Tab) || "stats";
+  const setTab = (t: Tab) => setParams(t === "stats" ? {} : { tab: t });
   const [stats, setStats] = useState<Stats | null>(null);
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [access, setAccess] = useState<AdminEnrollment[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<CourseForm>(emptyForm);
   const [query, setQuery] = useState("");
+  const [grant, setGrant] = useState({ email: "", courseId: "" });
 
-  async function refresh() {
-    const [s, c, u] = await Promise.all([api.adminStats(), api.adminCourses(), api.adminUsers()]);
+  const refresh = useCallback(async () => {
+    const [s, c, u, a] = await Promise.all([api.adminStats(), api.adminCourses(), api.adminUsers(), api.adminEnrollments("all")]);
     setStats(s.stats);
     setCourses(c.courses);
     setUsers(u.users);
-  }
+    setAccess(a.enrollments);
+    setGrant((g) => (g.courseId ? g : { ...g, courseId: c.courses.find((x) => x.featured)?.id ?? c.courses[0]?.id ?? "" }));
+  }, []);
 
   useEffect(() => {
-    if (!isAdmin) return;
-    refresh().catch((err) => setError(err instanceof Error ? err.message : "Ошибка загрузки"));
-  }, [isAdmin]);
+    refresh().catch((e) => setError(e instanceof Error ? e.message : "Ошибка загрузки"));
+  }, [refresh]);
 
   useEffect(() => {
     if (!notice) return;
-    const id = window.setTimeout(() => setNotice(""), 2500);
+    const id = window.setTimeout(() => setNotice(""), 3000);
     return () => window.clearTimeout(id);
   }, [notice]);
-
-  const shownUsers = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
-  }, [users, query]);
 
   async function run(action: () => Promise<unknown>, done: string) {
     setError("");
@@ -116,125 +55,64 @@ export function AdminPage() {
       await action();
       await refresh();
       setNotice(done);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
       setBusy(false);
     }
   }
 
-  async function startEdit(id: string) {
-    setError("");
-    try {
-      const { course } = await api.adminGetCourse(id);
-      setEditingId(id);
-      setForm({
-        title: course.title,
-        slug: course.slug,
-        subject: course.subject,
-        level: course.level,
-        description: course.description,
-        coverColor: course.coverColor,
-        isFree: course.isFree,
-        priceTenge: course.priceTenge ?? 0,
-        published: course.published,
-        lessons: course.lessons.length
-          ? course.lessons.map((l) => ({ ...l, videoUrl: l.videoUrl || "" }))
-          : [emptyLesson(1)],
-      });
-      setTab("courses");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Не удалось открыть курс");
-    }
-  }
+  const pending = access.filter((a) => a.status === "pending");
+  const activeAccess = access.filter((a) => a.status === "active");
+  const q = query.trim().toLowerCase();
+  const match = (s: string) => !q || s.toLowerCase().includes(q);
+  const shownUsers = useMemo(() => users.filter((u) => match(u.name) || match(u.email)), [users, q]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shownAccess = activeAccess.filter((a) => match(a.user.name) || match(a.user.email) || match(a.course.title));
 
-  function resetForm() {
-    setEditingId(null);
-    setForm(emptyForm());
-  }
-
-  function setLesson(idx: number, patch: Partial<LessonDraft>) {
-    const lessons = form.lessons.map((l, i) => (i === idx ? { ...l, ...patch } : l));
-    setForm({ ...form, lessons });
-  }
-
-  function moveLesson(idx: number, dir: -1 | 1) {
-    const to = idx + dir;
-    if (to < 0 || to >= form.lessons.length) return;
-    const lessons = [...form.lessons];
-    [lessons[idx], lessons[to]] = [lessons[to], lessons[idx]];
-    setForm({ ...form, lessons: lessons.map((l, i) => ({ ...l, order: i + 1 })) });
-  }
-
-  function removeLesson(idx: number) {
-    const lessons = form.lessons.filter((_, i) => i !== idx).map((l, i) => ({ ...l, order: i + 1 }));
-    setForm({ ...form, lessons: lessons.length ? lessons : [emptyLesson(1)] });
-  }
-
-  function onSave(e: FormEvent) {
+  function onGrant(e: FormEvent) {
     e.preventDefault();
-    const body = {
-      title: form.title,
-      slug: form.slug || undefined,
-      subject: form.subject,
-      level: form.level,
-      description: form.description,
-      coverColor: form.coverColor,
-      isFree: form.isFree,
-      priceTenge: form.isFree ? null : form.priceTenge,
-      published: form.published,
-      lessons: form.lessons.map((l, i) => ({ ...l, order: i + 1 })),
-    };
     void run(async () => {
-      await api.adminSaveCourse(body, editingId ?? undefined);
-      resetForm();
-    }, editingId ? "Курс сохранён" : "Курс создан");
-  }
-
-  if (loading) {
-    return (
-      <Shell crumbs={[{ label: "Админ-панель" }]}>
-        <p className="adm-muted">Загрузка…</p>
-      </Shell>
-    );
-  }
-  if (!user) return <Navigate to="/login" replace />;
-  if (!isAdmin) {
-    return (
-      <Shell crumbs={[{ label: "Админ-панель" }]}>
-        <p className="adm-alert">Доступ только для администратора</p>
-      </Shell>
-    );
+      await api.adminGrant(grant.email, grant.courseId);
+      setGrant((g) => ({ ...g, email: "" }));
+    }, `Доступ открыт для ${grant.email}`);
   }
 
   return (
     <Shell crumbs={[{ label: "Оқу кеңістігі", to: "/home" }, { label: "Админ-панель" }]} subtitle="Админ-панель">
-      <div className="cab">
+      <div className="cab adm">
         <section className="cab-hello">
           <div>
             <h1>Админ-панель</h1>
-            <p><Icon name="admin_panel_settings" size={20} color="#00236f" /><span>Курсы, уроки и пользователи из базы данных</span></p>
+            <p><Icon name="admin_panel_settings" size={20} color="#00236f" /><span>Курсы, оплаты и ученики</span></p>
           </div>
-          <div className="qz-toggle">
-            <button type="button" className={tab === "stats" ? "on" : ""} onClick={() => setTab("stats")}><Icon name="monitoring" size={18} />Обзор</button>
-            <button type="button" className={tab === "courses" ? "on" : ""} onClick={() => setTab("courses")}><Icon name="menu_book" size={18} />Курсы</button>
-            <button type="button" className={tab === "users" ? "on" : ""} onClick={() => setTab("users")}><Icon name="group" size={18} />Пользователи</button>
+          <div className="qz-toggle" role="tablist">
+            {([
+              ["stats", "monitoring", "Обзор"],
+              ["courses", "menu_book", "Курсы"],
+              ["access", "verified", "Доступ"],
+              ["users", "group", "Пользователи"],
+            ] as const).map(([t, icon, label]) => (
+              <button key={t} type="button" role="tab" aria-selected={tab === t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
+                <Icon name={icon} size={18} />{label}
+                {t === "access" && pending.length > 0 && <b className="adm-badge">{pending.length}</b>}
+              </button>
+            ))}
           </div>
         </section>
 
         {error && <p className="adm-alert">{error}</p>}
-        {notice && <p className="adm-ok"><Icon name="check_circle" size={18} />{notice}</p>}
+        {notice && <p className="adm-ok" role="status"><Icon name="check_circle" size={18} />{notice}</p>}
 
         {tab === "stats" && (
           <>
             <div className="adm-kpis">
               {[
                 { icon: "group", v: stats?.users, l: "Пользователей" },
-                { icon: "menu_book", v: stats?.courses, l: "Курсов" },
-                { icon: "verified", v: stats?.publishedCourses, l: "Опубликовано" },
-                { icon: "school", v: stats?.enrollments, l: "Записей на курсы" },
+                { icon: "schedule", v: stats?.pending, l: "Ждут подтверждения оплаты", warn: Boolean(stats?.pending) },
+                { icon: "school", v: stats?.enrollments, l: "Учеников с доступом" },
+                { icon: "menu_book", v: stats?.publishedCourses, l: `Опубликовано курсов из ${stats?.courses ?? "—"}` },
               ].map((k) => (
-                <article key={k.l}>
+                <article key={k.l} className={k.warn ? "warn" : ""}>
                   <span className="cab-card__ico"><Icon name={k.icon} size={22} /></span>
                   <strong>{k.v ?? "—"}</strong>
                   <small>{k.l}</small>
@@ -242,6 +120,16 @@ export function AdminPage() {
               ))}
             </div>
             <div className="adm-two">
+              <article className="cab-card">
+                <header className="cab-card__head">
+                  <div>
+                    <span className="cab-card__ico"><Icon name="schedule" size={22} /></span>
+                    <div><h3>Новые заявки на оплату</h3><p>Проверьте поступление в Kaspi и откройте доступ</p></div>
+                  </div>
+                  <button type="button" className="adm-link" onClick={() => setTab("access")}>Все <Icon name="arrow_forward" size={16} /></button>
+                </header>
+                <PendingList items={pending.slice(0, 5)} busy={busy} run={run} />
+              </article>
               <article className="cab-card">
                 <header className="cab-card__head">
                   <div>
@@ -254,30 +142,11 @@ export function AdminPage() {
                   {users.slice(0, 6).map((u) => (
                     <li key={u.id}>
                       <span className="adm-ava">{u.name.slice(0, 1).toUpperCase()}</span>
-                      <div><b>{u.name}</b><small>{u.email}</small></div>
+                      <div><b>{u.name}</b><small>{u.email} · {date(u.createdAt)}</small></div>
                       <span className={u.role === "admin" ? "adm-role admin" : "adm-role"}>{u.role === "admin" ? "Админ" : "Ученик"}</span>
                     </li>
                   ))}
                   {users.length === 0 && <li className="adm-muted">Пока нет пользователей</li>}
-                </ul>
-              </article>
-              <article className="cab-card">
-                <header className="cab-card__head">
-                  <div>
-                    <span className="cab-card__ico"><Icon name="menu_book" size={22} /></span>
-                    <div><h3>Курсы</h3><p>Опубликованные и черновики</p></div>
-                  </div>
-                  <button type="button" className="adm-link" onClick={() => { resetForm(); setTab("courses"); }}>Новый курс <Icon name="add" size={16} /></button>
-                </header>
-                <ul className="adm-list">
-                  {courses.slice(0, 6).map((c) => (
-                    <li key={c.id}>
-                      <span className="adm-swatch" style={{ background: c.coverColor }} />
-                      <div><b>{c.title}</b><small>{c.lessonCount} уроков · {c.durationMinutes} мин</small></div>
-                      <span className={c.published ? "adm-role live" : "adm-role"}>{c.published ? "Опубликован" : "Черновик"}</span>
-                    </li>
-                  ))}
-                  {courses.length === 0 && <li className="adm-muted">Курсов пока нет</li>}
                 </ul>
               </article>
             </div>
@@ -285,102 +154,126 @@ export function AdminPage() {
         )}
 
         {tab === "courses" && (
-          <div className="adm-courses">
+          <article className="cab-card">
+            <header className="cab-card__head">
+              <div>
+                <span className="cab-card__ico"><Icon name="menu_book" size={22} /></span>
+                <div><h3>Курсы</h3><p>Основной курс открывается ученикам в кабинете</p></div>
+              </div>
+              <Link to="/admin/courses/new" className="qz-next"><Icon name="add" size={18} />Новый курс</Link>
+            </header>
+            <ul className="adm-clist">
+              {courses.map((c) => (
+                <li key={c.id}>
+                  <span className="adm-swatch" style={{ background: c.coverColor }} />
+                  <div>
+                    <b>{c.title}{c.featured && <em className="adm-role live">Основной</em>}</b>
+                    <small>
+                      {c.sectionCount} разделов · {c.lessonCount} уроков · {c.quizCount} тестов · {c.isFree ? "бесплатно" : fmtMoney(c.priceTenge)}
+                    </small>
+                  </div>
+                  <span className={c.published ? "adm-role live" : "adm-role"}>{c.published ? "Опубликован" : "Черновик"}</span>
+                  <div className="adm-acts">
+                    <Link to={`/admin/courses/${c.id}`} className="adm-open"><Icon name="edit" size={18} />Редактировать</Link>
+                    <button
+                      type="button"
+                      className="danger"
+                      aria-label={`Удалить курс ${c.title}`}
+                      disabled={busy}
+                      onClick={() => {
+                        if (!confirm(`Удалить курс «${c.title}» вместе с прогрессом учеников? Это нельзя отменить.`)) return;
+                        void run(() => api.adminDeleteCourse(c.id), "Курс удалён");
+                      }}
+                    >
+                      <Icon name="delete" size={18} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {courses.length === 0 && (
+                <li className="adm-empty">
+                  <p>Курсов пока нет. Создайте первый: добавьте разделы, уроки с видео и тесты.</p>
+                  <Link to="/admin/courses/new" className="qz-next"><Icon name="add" size={18} />Создать курс</Link>
+                </li>
+              )}
+            </ul>
+          </article>
+        )}
+
+        {tab === "access" && (
+          <>
             <article className="cab-card">
               <header className="cab-card__head">
                 <div>
-                  <span className="cab-card__ico"><Icon name="menu_book" size={22} /></span>
-                  <div><h3>Все курсы</h3><p>{courses.length} в базе</p></div>
+                  <span className="cab-card__ico"><Icon name="schedule" size={22} /></span>
+                  <div><h3>Ждут подтверждения ({pending.length})</h3><p>Ученик нажал «Төледім». Сверьте имя или телефон с Kaspi.</p></div>
                 </div>
-                <button type="button" className="adm-link" onClick={resetForm}>Новый <Icon name="add" size={16} /></button>
               </header>
-              <ul className="adm-clist">
-                {courses.map((c) => (
-                  <li key={c.id} className={editingId === c.id ? "on" : ""}>
-                    <span className="adm-swatch" style={{ background: c.coverColor }} />
-                    <div>
-                      <b>{c.title}</b>
-                      <small>{c.subject} · {levels[c.level]} · {c.lessonCount} уроков · {c.isFree ? "бесплатно" : `${c.priceTenge ?? 0} ₸`}</small>
-                    </div>
-                    <span className={c.published ? "adm-role live" : "adm-role"}>{c.published ? "Опубл." : "Черновик"}</span>
-                    <div className="adm-acts">
-                      <button type="button" onClick={() => startEdit(c.id)} aria-label="Изменить"><Icon name="edit" size={18} /></button>
-                      <button
-                        type="button"
-                        className="danger"
-                        aria-label="Удалить"
-                        onClick={() => {
-                          if (!confirm(`Удалить курс «${c.title}»?`)) return;
-                          void run(async () => {
-                            await api.adminDeleteCourse(c.id);
-                            if (editingId === c.id) resetForm();
-                          }, "Курс удалён");
-                        }}
-                      >
-                        <Icon name="delete" size={18} />
-                      </button>
-                    </div>
-                  </li>
-                ))}
-                {courses.length === 0 && <li className="adm-muted">Курсов пока нет — создайте первый справа.</li>}
-              </ul>
+              <PendingList items={pending} busy={busy} run={run} />
             </article>
 
-            <form className="cab-card adm-form" onSubmit={onSave}>
+            <article className="cab-card">
               <header className="cab-card__head">
                 <div>
-                  <span className="cab-card__ico"><Icon name={editingId ? "edit" : "add"} size={22} /></span>
-                  <div><h3>{editingId ? "Редактирование курса" : "Новый курс"}</h3><p>{editingId ? form.title : "Заполните поля и добавьте уроки"}</p></div>
+                  <span className="cab-card__ico"><Icon name="add" size={22} /></span>
+                  <div><h3>Открыть доступ вручную</h3><p>Ученик должен быть зарегистрирован на сайте</p></div>
                 </div>
               </header>
-              <div className="adm-fields">
-                <label className="wide">Название<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
-                <label>Slug<input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="авто" /></label>
-                <label>Предмет<input value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} /></label>
-                <label>Уровень
-                  <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value as Level })}>
-                    {Object.entries(levels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              <form className="adm-grant" onSubmit={onGrant}>
+                <label>Email ученика<input type="email" required value={grant.email} onChange={(e) => setGrant({ ...grant, email: e.target.value })} placeholder="student@mail.kz" /></label>
+                <label>Курс
+                  <select value={grant.courseId} onChange={(e) => setGrant({ ...grant, courseId: e.target.value })} required>
+                    {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
                 </label>
-                <label>Цвет обложки<input type="color" value={form.coverColor} onChange={(e) => setForm({ ...form, coverColor: e.target.value })} /></label>
-                <label className="wide">Описание<textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-                <label className="adm-check"><input type="checkbox" checked={form.isFree} onChange={(e) => setForm({ ...form, isFree: e.target.checked })} />Бесплатный</label>
-                {!form.isFree && (
-                  <label>Цена, ₸<input type="number" min={0} value={form.priceTenge} onChange={(e) => setForm({ ...form, priceTenge: Number(e.target.value) || 0 })} /></label>
-                )}
-                <label className="adm-check"><input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />Опубликован</label>
+                <button type="submit" className="qz-next" disabled={busy || !grant.courseId}>Открыть доступ</button>
+              </form>
+            </article>
+
+            <article className="cab-card">
+              <header className="cab-card__head">
+                <div>
+                  <span className="cab-card__ico"><Icon name="school" size={22} /></span>
+                  <div><h3>С доступом ({activeAccess.length})</h3><p>Прогресс учеников по курсам</p></div>
+                </div>
+                <input className="adm-search" placeholder="Поиск по имени, email, курсу" value={query} onChange={(e) => setQuery(e.target.value)} />
+              </header>
+              <div className="adm-table">
+                <table>
+                  <thead>
+                    <tr><th>Ученик</th><th>Курс</th><th>Прогресс</th><th>Тесты сданы</th><th>Открыт</th><th /></tr>
+                  </thead>
+                  <tbody>
+                    {shownAccess.map((a) => (
+                      <tr key={a.id}>
+                        <td><span className="adm-ava">{a.user.name.slice(0, 1).toUpperCase()}</span>{a.user.name}<small className="adm-sub-email">{a.user.email}</small></td>
+                        <td>{a.course.title}</td>
+                        <td><span className="adm-bar"><i style={{ width: `${a.progressPercent}%` }} /></span>{a.progressPercent}%</td>
+                        <td>{Object.values(a.quizResults).filter((r) => r.passed).length}</td>
+                        <td>{a.activatedAt ? date(a.activatedAt) : date(a.enrolledAt)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="adm-del"
+                            disabled={busy}
+                            aria-label="Закрыть доступ"
+                            title="Закрыть доступ"
+                            onClick={() => {
+                              if (!confirm(`Закрыть доступ ${a.user.email} к курсу «${a.course.title}»? Прогресс будет удалён.`)) return;
+                              void run(() => api.adminDeleteEnrollment(a.id), "Доступ закрыт");
+                            }}
+                          >
+                            <Icon name="delete" size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {shownAccess.length === 0 && <tr><td colSpan={6} className="adm-muted">Никого не найдено</td></tr>}
+                  </tbody>
+                </table>
               </div>
-
-              <h4 className="adm-sub">Уроки <small>{form.lessons.length}</small></h4>
-              {form.lessons.map((lesson, idx) => (
-                <fieldset key={lesson.id ?? `new-${idx}`} className="adm-lesson">
-                  <legend>
-                    <span>Урок {idx + 1}</span>
-                    <span className="adm-acts">
-                      <button type="button" onClick={() => moveLesson(idx, -1)} disabled={idx === 0} aria-label="Выше"><Icon name="arrow_drop_up" size={22} /></button>
-                      <button type="button" onClick={() => moveLesson(idx, 1)} disabled={idx === form.lessons.length - 1} aria-label="Ниже"><Icon name="expand_more" size={20} /></button>
-                      <button type="button" className="danger" onClick={() => removeLesson(idx)} aria-label="Удалить урок"><Icon name="delete" size={18} /></button>
-                    </span>
-                  </legend>
-                  <div className="adm-fields">
-                    <label className="wide">Заголовок<input value={lesson.title} onChange={(e) => setLesson(idx, { title: e.target.value })} required /></label>
-                    <label className="wide">Кратко<input value={lesson.summary} onChange={(e) => setLesson(idx, { summary: e.target.value })} /></label>
-                    <label>Видео (URL)<input value={lesson.videoUrl} onChange={(e) => setLesson(idx, { videoUrl: e.target.value })} placeholder="https://…" /></label>
-                    <label>Минут<input type="number" min={1} value={lesson.durationMinutes} onChange={(e) => setLesson(idx, { durationMinutes: Number(e.target.value) || 10 })} /></label>
-                    <label className="wide">Содержание<textarea rows={4} value={lesson.content} onChange={(e) => setLesson(idx, { content: e.target.value })} required /></label>
-                  </div>
-                </fieldset>
-              ))}
-              <button type="button" className="adm-add" onClick={() => setForm({ ...form, lessons: [...form.lessons, emptyLesson(form.lessons.length + 1)] })}>
-                <Icon name="add" size={18} />Добавить урок
-              </button>
-
-              <footer className="adm-foot">
-                {editingId && <button type="button" className="qz-prev" onClick={resetForm}>Отмена</button>}
-                <button type="submit" className="qz-next" disabled={busy}>{busy ? "Сохранение…" : editingId ? "Сохранить" : "Создать курс"}</button>
-              </footer>
-            </form>
-          </div>
+            </article>
+          </>
         )}
 
         {tab === "users" && (
@@ -399,7 +292,7 @@ export function AdminPage() {
                 </thead>
                 <tbody>
                   {shownUsers.map((u) => {
-                    const self = u.id === user.id;
+                    const self = u.id === user?.id;
                     return (
                       <tr key={u.id}>
                         <td><span className="adm-ava">{u.name.slice(0, 1).toUpperCase()}</span>{u.name}{self && <em className="adm-you">вы</em>}</td>
@@ -408,10 +301,8 @@ export function AdminPage() {
                           <select
                             value={u.role}
                             disabled={self || busy}
-                            onChange={(e) => {
-                              const role = e.target.value as "user" | "admin";
-                              void run(() => api.adminSetRole(u.id, role), "Роль обновлена");
-                            }}
+                            aria-label={`Роль ${u.email}`}
+                            onChange={(e) => void run(() => api.adminSetRole(u.id, e.target.value as "user" | "admin"), "Роль обновлена")}
                           >
                             <option value="user">Ученик</option>
                             <option value="admin">Админ</option>
@@ -425,9 +316,9 @@ export function AdminPage() {
                               type="button"
                               className="adm-del"
                               disabled={busy}
-                              aria-label="Удалить пользователя"
+                              aria-label={`Удалить ${u.email}`}
                               onClick={() => {
-                                if (!confirm(`Удалить пользователя ${u.email}?`)) return;
+                                if (!confirm(`Удалить пользователя ${u.email} и весь его прогресс?`)) return;
                                 void run(() => api.adminDeleteUser(u.id), "Пользователь удалён");
                               }}
                             >
@@ -438,9 +329,7 @@ export function AdminPage() {
                       </tr>
                     );
                   })}
-                  {shownUsers.length === 0 && (
-                    <tr><td colSpan={6} className="adm-muted">Никого не найдено</td></tr>
-                  )}
+                  {shownUsers.length === 0 && <tr><td colSpan={6} className="adm-muted">Никого не найдено</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -448,5 +337,47 @@ export function AdminPage() {
         )}
       </div>
     </Shell>
+  );
+}
+
+function PendingList({
+  items,
+  busy,
+  run,
+}: {
+  items: AdminEnrollment[];
+  busy: boolean;
+  run: (action: () => Promise<unknown>, done: string) => Promise<void>;
+}) {
+  if (items.length === 0) return <p className="adm-muted">Новых заявок нет.</p>;
+  return (
+    <ul className="adm-pending">
+      {items.map((a) => (
+        <li key={a.id}>
+          <div>
+            <b>{a.user.name}</b>
+            <small>{a.user.email} · {a.course.title} · {fmtMoney(a.course.priceTenge)}</small>
+            {a.note && <p>Kaspi: «{a.note}»</p>}
+            <small>Заявка: {dateTime(a.enrolledAt)}</small>
+          </div>
+          <div className="adm-pending__acts">
+            <button type="button" className="qz-next" disabled={busy} onClick={() => void run(() => api.adminSetEnrollment(a.id, "active"), `Доступ открыт: ${a.user.email}`)}>
+              <Icon name="check" size={18} />Оплата пришла
+            </button>
+            <button
+              type="button"
+              className="qz-prev"
+              disabled={busy}
+              onClick={() => {
+                if (!confirm(`Отклонить заявку ${a.user.email}? Ученик сможет отправить её снова.`)) return;
+                void run(() => api.adminDeleteEnrollment(a.id), "Заявка отклонена");
+              }}
+            >
+              Отклонить
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

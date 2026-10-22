@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { Icon } from "./Icon";
 
@@ -37,7 +37,7 @@ export function Shell({
   variant = "home",
   subtitle = "Курс",
   flush,
-  streak = variant === "study",
+  streak = false,
 }: {
   children: ReactNode;
   crumbs?: Crumb[];
@@ -51,8 +51,13 @@ export function Shell({
   const name = user?.name?.split(" ")[0] || "Айбек";
   const links = nav[variant];
   const trail = crumbs ?? (variant === "home"
-    ? [{ label: "Оқу кеңістігі", to: "/home" }, { label: "ҰБТ Дайындық 2025" }]
-    : [{ label: "Басты бет", to: "/home" }, { label: "Курс модульдері" }]);
+    ? [{ label: "Оқу кеңістігі", to: "/home" }, { label: "Жеке кабинет" }]
+    : [{ label: "Басты бет", to: "/home" }, { label: "Курс", to: "/course" }]);
+
+  const pageTitle = trail[trail.length - 1]?.label;
+  useEffect(() => {
+    document.title = pageTitle ? `${pageTitle} — MATH ASYL` : "MATH ASYL";
+  }, [pageTitle]);
 
   function out() {
     logout();
@@ -129,15 +134,10 @@ export function Shell({
           </span>
         </Link>
         <div className="top__right">
-          <button type="button" className="top__bell" aria-label="Хабарламалар">
-            <Icon name="notifications" size={22} />
-            {variant === "home" ? <em>2</em> : <i />}
-          </button>
-          {variant === "home" && <span className="top__div" />}
           <Link to="/profile" className="top__who">
             <span>
               <strong>{name}</strong>
-              <small>{variant === "home" ? "11-сынып оқушысы" : "11-сынып • ҰБТ 2025"}</small>
+              <small>{isAdmin ? "Әкімші" : "Оқушы"}</small>
             </span>
             <span className="top__ava">{initials(user?.name || name)}</span>
           </Link>

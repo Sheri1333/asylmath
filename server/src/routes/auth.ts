@@ -83,3 +83,22 @@ authRouter.post("/login", async (req, res) => {
 authRouter.get("/me", authRequired, (req: AuthedRequest, res) => {
   res.json({ user: req.user });
 });
+
+authRouter.post("/password", authRequired, async (req: AuthedRequest, res) => {
+  const { current, next } = (req.body ?? {}) as { current?: string; next?: string };
+  if (!current || !next) {
+    res.status(400).json({ error: "Ағымдағы және жаңа құпиясөзді енгізіңіз" });
+    return;
+  }
+  if (next.length < 8) {
+    res.status(400).json({ error: "Жаңа құпиясөз кемінде 8 таңбадан тұруы керек" });
+    return;
+  }
+  const row = await users().findOne({ email: req.user!.email });
+  if (!row || !bcrypt.compareSync(current, row.passwordHash)) {
+    res.status(400).json({ error: "Ағымдағы құпиясөз қате" });
+    return;
+  }
+  await users().updateOne({ _id: row._id }, { $set: { passwordHash: bcrypt.hashSync(next, 10) } });
+  res.json({ ok: true });
+});

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /home
+Disallow: /lesson
+Disallow: /tests
+Disallow: /profile
+Disallow: /api/

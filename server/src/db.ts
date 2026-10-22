@@ -39,6 +39,13 @@ export interface UserDoc {
   createdAt: Date;
 }
 
+export interface MaterialDoc {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+}
+
 export interface LessonDoc {
   id: string;
   title: string;
@@ -47,6 +54,37 @@ export interface LessonDoc {
   videoUrl?: string;
   durationMinutes: number;
   order: number;
+  /** Open to signed-in visitors without paid access. */
+  isPreview?: boolean;
+  materials?: MaterialDoc[];
+}
+
+export type QuestionLevel = "easy" | "mid" | "hard";
+
+export interface QuestionDoc {
+  id: string;
+  prompt: string;
+  formula?: string;
+  choices: string[];
+  /** Index into choices. Never sent to students before they submit. */
+  answer: number;
+  explanation: string;
+  level: QuestionLevel;
+}
+
+export interface QuizDoc {
+  passPercent: number;
+  timeLimitMinutes: number;
+  questions: QuestionDoc[];
+}
+
+export interface SectionDoc {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  lessons: LessonDoc[];
+  quiz: QuizDoc;
 }
 
 export interface CourseDoc {
@@ -60,8 +98,30 @@ export interface CourseDoc {
   isFree: boolean;
   priceTenge: number | null;
   published: boolean;
-  lessons: LessonDoc[];
+  /** The course the student cabinet opens by default. */
+  featured?: boolean;
+  /** Next section opens only after the previous section's test is passed. */
+  sequential?: boolean;
+  /** Kaspi payment details shown to students who have not paid yet. */
+  paymentNote?: string;
+  paymentUrl?: string;
+  sections?: SectionDoc[];
+  /** Legacy flat list from before sections existed; read through courseSections(). */
+  lessons?: LessonDoc[];
   createdAt: Date;
+  updatedAt: Date;
+}
+
+export type EnrollmentStatus = "active" | "pending";
+
+export interface QuizResultDoc {
+  best: number;
+  last: number;
+  total: number;
+  passed: boolean;
+  attempts: number;
+  /** Per-question picks of the last attempt, for the review screen. */
+  lastPicks: number[];
   updatedAt: Date;
 }
 
@@ -69,8 +129,13 @@ export interface EnrollmentDoc {
   _id: ObjectId;
   userId: ObjectId;
   courseId: string;
+  /** Missing on enrollments created before access requests existed: treated as active. */
+  status?: EnrollmentStatus;
   completedLessonIds: string[];
+  quizResults?: Record<string, QuizResultDoc>;
+  requestNote?: string;
   enrolledAt: Date;
+  activatedAt?: Date;
   lastAccessedAt: Date;
 }
 
@@ -147,36 +212,6 @@ export function publicUser(doc: UserDoc) {
     email: doc.email,
     name: doc.name,
     role: doc.role,
-  };
-}
-
-export function publicCourse(doc: CourseDoc, opts?: { includeLessons?: boolean }) {
-  const lessons = [...doc.lessons].sort((a, b) => a.order - b.order);
-  return {
-    id: doc._id,
-    title: doc.title,
-    slug: doc.slug,
-    subject: doc.subject,
-    level: doc.level,
-    description: doc.description,
-    coverColor: doc.coverColor,
-    isFree: doc.isFree,
-    priceTenge: doc.priceTenge,
-    published: doc.published,
-    lessonCount: lessons.length,
-    durationMinutes: lessons.reduce((sum, l) => sum + l.durationMinutes, 0),
-    createdAt: doc.createdAt.toISOString(),
-    updatedAt: doc.updatedAt.toISOString(),
-    lessons: opts?.includeLessons
-      ? lessons.map((l) => ({
-          id: l.id,
-          title: l.title,
-          summary: l.summary,
-          durationMinutes: l.durationMinutes,
-          order: l.order,
-          hasVideo: Boolean(l.videoUrl),
-        }))
-      : undefined,
   };
 }
 

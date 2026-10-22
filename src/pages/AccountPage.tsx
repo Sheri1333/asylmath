@@ -1,31 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { useAuth } from "../auth/AuthContext";
-import { quiz } from "../data/content";
 
 type Enrollment = Awaited<ReturnType<typeof api.myEnrollments>>["enrollments"][number];
 
-function lastQuiz() {
-  try {
-    const raw = localStorage.getItem("asyl-quiz");
-    if (!raw) return null;
-    const saved = JSON.parse(raw) as { picks: Record<number, string>; done: boolean };
-    if (!saved.done) return null;
-    return quiz.filter((q, i) => saved.picks[i] === q.answer).length;
-  } catch {
-    return null;
-  }
-}
 
 export function AccountPage() {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Enrollment[] | null>(null);
   const [error, setError] = useState("");
-  const score = lastQuiz();
   const name = user?.name || "Оқушы";
 
   useEffect(() => {
@@ -104,26 +91,76 @@ export function AccountPage() {
               <div>
                 <span className="cab-card__ico"><Icon name="quiz" size={22} /></span>
                 <div>
-                  <h3>Соңғы тақырып тесті</h3>
-                  <p>3.3 Виет теоремасы</p>
+                  <h3>Тақырыптық тесттер</h3>
+                  <p>Барлық курстар бойынша</p>
                 </div>
               </div>
             </header>
-            {score === null ? (
-              <div className="acc__empty">
-                <p>Тест әлі аяқталмаған. Нәтиже осында сақталады.</p>
-                <Link to="/tests" className="prog__btn">Тестті бастау<Icon name="arrow_forward" size={16} /></Link>
-              </div>
-            ) : (
-              <div className="acc__score">
-                <b className={score >= 7 ? "ok" : ""}>{score}<em>/{quiz.length}</em></b>
-                <p>{score >= 7 ? "Шек өтті: келесі тақырып ашық." : "Өту үшін 7 дұрыс жауап керек. Қатемен жұмыс жасап, қайта тапсырыңыз."}</p>
-                <Link to="/tests">Нәтижені ашу<Icon name="arrow_forward" size={16} /></Link>
-              </div>
-            )}
+            {(() => {
+              const results = (items ?? []).flatMap((e) => Object.values(e.quizResults));
+              if (results.length === 0)
+                return (
+                  <div className="acc__empty">
+                    <p>Әзірге тест тапсырылмаған. Бөлімнің сабақтарын өткен соң тест ашылады.</p>
+                    <Link to="/tests" className="prog__btn">Келесі тест<Icon name="arrow_forward" size={16} /></Link>
+                  </div>
+                );
+              const passedN = results.filter((r) => r.passed).length;
+              return (
+                <div className="acc__score">
+                  <b className={passedN === results.length ? "ok" : ""}>{passedN}<em>/{results.length}</em></b>
+                  <p>{passedN === results.length ? "Тапсырылған тесттердің бәрі өтті." : "Кейбір тесттер шекке жетпеді: оларды кабинеттегі «Әлсіз тақырыптар» блогынан қайталаңыз."}</p>
+                  <Link to="/home">Кабинетке өту<Icon name="arrow_forward" size={16} /></Link>
+                </div>
+              );
+            })()}
           </article>
         </div>
+        <PasswordCard />
       </div>
     </Shell>
+  );
+}
+
+function PasswordCard() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      await api.changePassword(current, next);
+      setCurrent("");
+      setNext("");
+      setMsg({ ok: true, text: "Құпиясөз өзгертілді" });
+    } catch (err) {
+      setMsg({ ok: false, text: err instanceof Error ? err.message : "Құпиясөзді өзгерту мүмкін болмады" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <article className="cab-card">
+      <header className="cab-card__head cab-card__head--flat">
+        <div>
+          <span className="cab-card__ico"><Icon name="lock" size={22} /></span>
+          <div>
+            <h3>Құпиясөзді өзгерту</h3>
+            <p>Жаңа құпиясөз кемінде 8 таңба</p>
+          </div>
+        </div>
+      </header>
+      <form className="adm-grant" onSubmit={submit}>
+        <label>Ағымдағы құпиясөз<input type="password" autoComplete="current-password" required value={current} onChange={(e) => setCurrent(e.target.value)} /></label>
+        <label>Жаңа құпиясөз<input type="password" autoComplete="new-password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} /></label>
+        <button type="submit" className="qz-next" disabled={busy}>{busy ? "Сақталуда…" : "Өзгерту"}</button>
+      </form>
+      {msg && <p className={msg.ok ? "adm-ok" : "adm-alert"} role="status">{msg.text}</p>}
+    </article>
   );
 }

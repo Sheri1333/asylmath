@@ -1,141 +1,227 @@
 import { Router } from "express";
-import { courses, enrollments, publicCourse, toObjectId } from "../db.js";
+import { courses, enrollments, toObjectId, type CourseDoc, type EnrollmentDoc } from "../db.js";
 import { optionalAuth, authRequired, type AuthedRequest } from "../auth.js";
+import {
+  courseOutline,
+  courseSections,
+  enrollmentView,
+  flatLessons,
+  hasAccess,
+  isActive,
+  publicCourse,
+  publicQuiz,
+  sectionOpen,
+} from "../course.js";
 
 export const coursesRouter = Router();
 
+async function findCourse(key: string, isAdmin: boolean): Promise<CourseDoc | null> {
+  const row = (await courses().findOne({ _id: key })) ?? (await courses().findOne({ slug: key }));
+  if (!row || (!row.published && !isAdmin)) return null;
+  return row;
+}
+
+async function myEnrollment(req: AuthedRequest, courseId: string): Promise<EnrollmentDoc | null> {
+  if (!req.user) return null;
+  const oid = toObjectId(req.user.id);
+  return oid ? enrollments().findOne({ userId: oid, courseId }) : null;
+}
+
 coursesRouter.get("/", optionalAuth, async (req: AuthedRequest, res) => {
-  const subject =
-    typeof req.query.subject === "string" ? req.query.subject.trim() : "";
-  const filter: Record<string, unknown> = { published: true };
-  if (subject) filter.subject = subject;
-
-  const rows = await courses().find(filter).sort({ updatedAt: -1 }).toArray();
-  let enrolledIds = new Set<string>();
-
-  if (req.user) {
-    const oid = toObjectId(req.user.id);
-    if (oid) {
-      const mine = await enrollments().find({ userId: oid }).toArray();
-      enrolledIds = new Set(mine.map((e) => e.courseId));
-    }
-  }
-
+  const rows = await courses().find({ published: true }).sort({ featured: -1, updatedAt: -1 }).toArray();
+  const oid = req.user ? toObjectId(req.user.id) : null;
+  const mine = oid ? await enrollments().find({ userId: oid }).toArray() : [];
+  const byCourse = new Map(mine.map((e) => [e.courseId, e]));
   res.json({
     courses: rows.map((row) => ({
       ...publicCourse(row),
-      enrolled: enrolledIds.has(row._id),
+      enrollmentStatus: byCourse.get(row._id) ? (byCourse.get(row._id)!.status ?? "active") : null,
     })),
   });
 });
 
-coursesRouter.get("/:idOrSlug", optionalAuth, async (req: AuthedRequest, res) => {
-  const key = String(req.params.idOrSlug);
+/** The course the cabinet opens: the featured one, else the newest published. */
+coursesRouter.get("/featured", async (_req, res) => {
   const row =
-    (await courses().findOne({ _id: key })) ??
-    (await courses().findOne({ slug: key }));
-
-  if (!row || (!row.published && req.user?.role !== "admin")) {
-    res.status(404).json({ error: "Курс не найден" });
+    (await courses().findOne({ published: true, featured: true })) ??
+    (await courses().find({ published: true }).sort({ updatedAt: -1 }).limit(1).next());
+  if (!row) {
+    res.status(404).json({ error: "Курс әлі жарияланбаған" });
     return;
   }
+  res.json({ slug: row.slug });
+});
 
-  let enrollment = null;
-  if (req.user) {
-    const oid = toObjectId(req.user.id);
-    if (oid) {
-      const enr = await enrollments().findOne({
-        userId: oid,
-        courseId: row._id,
-      });
-      if (enr) {
-        enrollment = {
-          completedLessonIds: enr.completedLessonIds,
-          enrolledAt: enr.enrolledAt.toISOString(),
-          lastAccessedAt: enr.lastAccessedAt.toISOString(),
-          progressPercent:
-            row.lessons.length === 0
-              ? 0
-              : Math.round(
-                  (enr.completedLessonIds.length / row.lessons.length) * 100,
-                ),
-        };
-      }
-    }
+coursesRouter.get("/:key", optionalAuth, async (req: AuthedRequest, res) => {
+  const isAdmin = req.user?.role === "admin";
+  const row = await findCourse(String(req.params.key), isAdmin);
+  if (!row) {
+    res.status(404).json({ error: "Курс табылмады" });
+    return;
   }
-
+  const enr = await myEnrollment(req, row._id);
   res.json({
-    course: publicCourse(row, { includeLessons: true }),
-    enrollment,
+    course: publicCourse(row),
+    outline: courseOutline(row, enr, isAdmin),
+    enrollment: enrollmentView(row, enr),
+    access: hasAccess(row, enr, isAdmin),
   });
 });
 
-coursesRouter.get(
-  "/:idOrSlug/lessons/:lessonId",
-  authRequired,
-  async (req: AuthedRequest, res) => {
-    const key = String(req.params.idOrSlug);
-    const lessonId = String(req.params.lessonId);
-    const row =
-      (await courses().findOne({ _id: key })) ??
-      (await courses().findOne({ slug: key }));
-
-    if (!row || (!row.published && req.user?.role !== "admin")) {
-      res.status(404).json({ error: "Курс не найден" });
-      return;
-    }
-
-    const oid = toObjectId(req.user!.id);
-    if (!oid) {
-      res.status(401).json({ error: "Недействительный пользователь" });
-      return;
-    }
-
-    const enr = await enrollments().findOne({
-      userId: oid,
-      courseId: row._id,
+coursesRouter.get("/:key/lessons/:lessonId", authRequired, async (req: AuthedRequest, res) => {
+  const isAdmin = req.user!.role === "admin";
+  const row = await findCourse(String(req.params.key), isAdmin);
+  if (!row) {
+    res.status(404).json({ error: "Курс табылмады" });
+    return;
+  }
+  const sections = courseSections(row);
+  const all = flatLessons(row);
+  const idx = all.findIndex((l) => l.id === String(req.params.lessonId));
+  if (idx === -1) {
+    res.status(404).json({ error: "Сабақ табылмады" });
+    return;
+  }
+  const lesson = all[idx];
+  const enr = await myEnrollment(req, row._id);
+  const open = hasAccess(row, enr, isAdmin) && sectionOpen(sections, lesson.sectionIndex, row, enr, isAdmin);
+  if (!open && !lesson.isPreview) {
+    res.status(403).json({
+      error: hasAccess(row, enr, isAdmin)
+        ? "Бұл бөлім алдыңғы бөлімнің тестінен кейін ашылады"
+        : "Сабақ курсқа қолжетімділік ашылғаннан кейін көрінеді",
     });
-    if (!enr && req.user!.role !== "admin") {
-      res.status(403).json({ error: "Сначала запишитесь на курс" });
-      return;
-    }
+    return;
+  }
+  if (enr) await enrollments().updateOne({ _id: enr._id }, { $set: { lastAccessedAt: new Date() } });
 
-    const lesson = row.lessons.find((l) => l.id === lessonId);
-    if (!lesson) {
-      res.status(404).json({ error: "Урок не найден" });
-      return;
-    }
+  const section = sections[lesson.sectionIndex];
+  res.json({
+    course: publicCourse(row),
+    section: { id: section.id, title: section.title, order: lesson.sectionIndex + 1, hasQuiz: section.quiz.questions.length > 0 },
+    lesson: {
+      id: lesson.id,
+      title: lesson.title,
+      summary: lesson.summary,
+      content: lesson.content,
+      videoUrl: lesson.videoUrl ?? null,
+      durationMinutes: lesson.durationMinutes,
+      isPreview: Boolean(lesson.isPreview),
+      materials: lesson.materials ?? [],
+      completed: Boolean(enr?.completedLessonIds.includes(lesson.id)),
+    },
+    navigation: {
+      prevLessonId: idx > 0 ? all[idx - 1].id : null,
+      nextLessonId: idx < all.length - 1 ? all[idx + 1].id : null,
+    },
+    outline: courseOutline(row, enr, isAdmin),
+    enrollment: enrollmentView(row, enr),
+  });
+});
 
-    if (enr) {
-      await enrollments().updateOne(
-        { _id: enr._id },
-        { $set: { lastAccessedAt: new Date() } },
-      );
-    }
+function quizContext(row: CourseDoc, sectionId: string) {
+  const sections = courseSections(row);
+  const index = sections.findIndex((s) => s.id === sectionId);
+  return { sections, index, section: index === -1 ? null : sections[index] };
+}
 
-    const sorted = [...row.lessons].sort((a, b) => a.order - b.order);
-    const idx = sorted.findIndex((l) => l.id === lessonId);
+coursesRouter.get("/:key/sections/:sectionId/quiz", authRequired, async (req: AuthedRequest, res) => {
+  const isAdmin = req.user!.role === "admin";
+  const row = await findCourse(String(req.params.key), isAdmin);
+  if (!row) {
+    res.status(404).json({ error: "Курс табылмады" });
+    return;
+  }
+  const { sections, index, section } = quizContext(row, String(req.params.sectionId));
+  if (!section || section.quiz.questions.length === 0) {
+    res.status(404).json({ error: "Бұл бөлімде тест жоқ" });
+    return;
+  }
+  const enr = await myEnrollment(req, row._id);
+  if (!hasAccess(row, enr, isAdmin)) {
+    res.status(403).json({ error: "Тест курсқа қолжетімділік ашылғаннан кейін көрінеді" });
+    return;
+  }
+  if (!sectionOpen(sections, index, row, enr, isAdmin)) {
+    res.status(403).json({ error: "Алдымен алдыңғы бөлімнің тестін тапсырыңыз" });
+    return;
+  }
+  const result = enr?.quizResults?.[section.id];
+  res.json({
+    course: publicCourse(row),
+    section: { id: section.id, title: section.title, order: index + 1 },
+    nextSection: sections[index + 1] ? { id: sections[index + 1].id, title: sections[index + 1].title } : null,
+    quiz: publicQuiz(section.quiz),
+    result: result
+      ? {
+          best: result.best,
+          last: result.last,
+          total: result.total,
+          passed: result.passed,
+          attempts: result.attempts,
+          review: section.quiz.questions.map((q, i) => ({
+            id: q.id,
+            pick: result.lastPicks[i] ?? -1,
+            answer: q.answer,
+            explanation: q.explanation,
+          })),
+        }
+      : null,
+  });
+});
 
-    res.json({
-      course: {
-        id: row._id,
-        title: row.title,
-        slug: row.slug,
+coursesRouter.post("/:key/sections/:sectionId/quiz", authRequired, async (req: AuthedRequest, res) => {
+  const isAdmin = req.user!.role === "admin";
+  const row = await findCourse(String(req.params.key), isAdmin);
+  if (!row) {
+    res.status(404).json({ error: "Курс табылмады" });
+    return;
+  }
+  const { sections, index, section } = quizContext(row, String(req.params.sectionId));
+  if (!section || section.quiz.questions.length === 0) {
+    res.status(404).json({ error: "Бұл бөлімде тест жоқ" });
+    return;
+  }
+  const enr = await myEnrollment(req, row._id);
+  if (!isAdmin && (!isActive(enr) || !sectionOpen(sections, index, row, enr, false))) {
+    res.status(403).json({ error: "Тест әлі ашылмаған" });
+    return;
+  }
+  const picksIn = (req.body as { picks?: unknown })?.picks;
+  const picks = section.quiz.questions.map((_, i) => {
+    const v = Array.isArray(picksIn) ? Number(picksIn[i]) : -1;
+    return Number.isInteger(v) ? v : -1;
+  });
+  const total = section.quiz.questions.length;
+  const score = section.quiz.questions.filter((q, i) => picks[i] === q.answer).length;
+  const passed = (score / total) * 100 >= section.quiz.passPercent;
+
+  if (enr) {
+    const prev = enr.quizResults?.[section.id];
+    await enrollments().updateOne(
+      { _id: enr._id },
+      {
+        $set: {
+          [`quizResults.${section.id}`]: {
+            best: Math.max(prev?.best ?? 0, score),
+            last: score,
+            total,
+            passed: Boolean(prev?.passed) || passed,
+            attempts: (prev?.attempts ?? 0) + 1,
+            lastPicks: picks,
+            updatedAt: new Date(),
+          },
+          lastAccessedAt: new Date(),
+        },
       },
-      lesson: {
-        id: lesson.id,
-        title: lesson.title,
-        summary: lesson.summary,
-        content: lesson.content,
-        videoUrl: lesson.videoUrl ?? null,
-        durationMinutes: lesson.durationMinutes,
-        order: lesson.order,
-        completed: Boolean(enr?.completedLessonIds.includes(lesson.id)),
-      },
-      navigation: {
-        prevLessonId: idx > 0 ? sorted[idx - 1].id : null,
-        nextLessonId: idx < sorted.length - 1 ? sorted[idx + 1].id : null,
-      },
-    });
-  },
-);
+    );
+  }
+
+  res.json({
+    score,
+    total,
+    passed,
+    passPercent: section.quiz.passPercent,
+    review: section.quiz.questions.map((q, i) => ({ id: q.id, pick: picks[i], answer: q.answer, explanation: q.explanation })),
+  });
+});

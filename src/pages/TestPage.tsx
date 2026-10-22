@@ -1,25 +1,11 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
+import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import { quiz } from "../data/content";
-
-const KEY = "asyl-quiz";
-
-type Saved = { picks: Record<number, string>; flags: number[]; done: boolean };
-
-// First visit opens in the state the Figma frame shows: 1–3 answered, A picked on #4, #5 flagged.
-const demo: Saved = { picks: { 0: "A", 1: "B", 2: "B", 3: "A" }, flags: [4], done: false };
-
-function load(): Saved {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return demo;
-    return JSON.parse(raw) as Saved;
-  } catch {
-    return demo;
-  }
-}
+import { PageState } from "../components/PageState";
+import { mainSlug, nextQuiz, useMainCourse } from "../lib/course";
+import type { QuizView, ReviewItem } from "../types/course";
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60);
@@ -33,52 +19,206 @@ function mathify(text: string): ReactNode {
   return parts.map((p, i) => (i % 2 ? <em key={i}>{p}</em> : <Fragment key={i}>{p}</Fragment>));
 }
 
-const levelTone = (level: string) => (/жеңіл/i.test(level) ? "easy" : /күрделі/i.test(level) ? "hard" : "mid");
+const levelName = { easy: "Жеңіл", mid: "Орташа деңгей", hard: "Күрделі" } as const;
+const letters = "ABCDEFGH";
+
+/** /tests without an id: the next test the student has to pass. */
+export function TestRedirect() {
+  const { view, error, reload } = useMainCourse();
+  if (view) {
+    const target = nextQuiz(view.outline) ?? view.outline.find((s) => s.quiz && !s.quiz.locked);
+    return <Navigate to={target ? `/tests/${target.id}` : "/course"} replace />;
+  }
+  return (
+    <Shell variant="study" flush streak={false}>
+      <PageState error={error} onRetry={reload} />
+    </Shell>
+  );
+}
+
+type Outcome = { score: number; total: number; passed: boolean; review: ReviewItem[] };
 
 export function TestPage() {
-  const saved = load();
-  const [index, setIndex] = useState(3);
-  const [picks, setPicks] = useState<Record<number, string>>(saved.picks);
-  const [flags, setFlags] = useState<number[]>(saved.flags);
-  const [mode, setMode] = useState<"quiz" | "result">(saved.done ? "result" : "quiz");
-  const [left, setLeft] = useState(14 * 60 + 25);
+  const { sectionId = "" } = useParams();
+  const [data, setData] = useState<QuizView | null>(null);
+  const [error, setError] = useState<{ message: string; status: number } | null>(null);
+  const [mode, setMode] = useState<"quiz" | "result">("quiz");
+  const [index, setIndex] = useState(0);
+  const [picks, setPicks] = useState<number[]>([]);
+  const [flags, setFlags] = useState<number[]>([]);
+  const [left, setLeft] = useState(0);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [sending, setSending] = useState(false);
+  const submitted = useRef(false);
 
-  useEffect(() => {
-    const id = window.setInterval(() => setLeft((v) => (v > 0 ? v - 1 : 0)), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
+  const load = useCallback(async () => {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ picks, flags, done: mode === "result" }));
-    } catch {
-      /* storage unavailable */
+      setError(null);
+      const d = await api.quiz(await mainSlug(), sectionId);
+      setData(d);
+      setPicks(d.quiz.questions.map(() => -1));
+      setFlags([]);
+      setIndex(0);
+      setLeft(d.quiz.timeLimitMinutes * 60);
+      submitted.current = false;
+      if (d.result) {
+        setOutcome({ score: d.result.last, total: d.result.total, passed: d.result.passed, review: d.result.review });
+        setMode("result");
+      } else {
+        setOutcome(null);
+        setMode("quiz");
+      }
+    } catch (e) {
+      setError({ message: e instanceof Error ? e.message : "Қате", status: e instanceof ApiError ? e.status : 0 });
     }
-  }, [picks, flags, mode]);
+  }, [sectionId]);
 
-  const score = useMemo(() => quiz.filter((q, i) => picks[i] === q.answer).length, [picks]);
-  const q = quiz[index];
-  const counts = quiz.reduce(
+  useEffect(() => {
+    setData(null);
+    void load();
+  }, [load]);
+
+  const submit = useCallback(async () => {
+    if (!data || submitted.current) return;
+    submitted.current = true;
+    setSending(true);
+    try {
+      const r = await api.submitQuiz(await mainSlug(), sectionId, picks);
+      setOutcome(r);
+      setMode("result");
+      window.scrollTo(0, 0);
+    } catch (e) {
+      submitted.current = false;
+      alert(e instanceof Error ? e.message : "Нәтижені жіберу мүмкін болмады");
+    } finally {
+      setSending(false);
+    }
+  }, [data, picks, sectionId]);
+
+  const timed = Boolean(data?.quiz.timeLimitMinutes);
+  useEffect(() => {
+    if (!timed || mode !== "quiz") return;
+    const id = window.setInterval(() => setLeft((v) => Math.max(0, v - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [timed, mode]);
+  useEffect(() => {
+    if (timed && mode === "quiz" && left === 0 && data && !submitted.current) void submit();
+  }, [left, timed, mode, data, submit]);
+
+  function restart() {
+    if (!data) return;
+    setPicks(data.quiz.questions.map(() => -1));
+    setFlags([]);
+    setIndex(0);
+    setLeft(data.quiz.timeLimitMinutes * 60);
+    submitted.current = false;
+    setMode("quiz");
+  }
+
+  if (!data) {
+    return (
+      <Shell variant="study" flush streak={false}>
+        {error?.status === 403 ? (
+          <div className="pstate pstate--err">
+            <Icon name="lock" size={28} />
+            <h2>Тест әлі жабық</h2>
+            <p>{error.message}</p>
+            <div className="pstate__acts"><Link to="/course" className="qz-next">Курс бағдарламасы</Link></div>
+          </div>
+        ) : (
+          <PageState error={error} onRetry={load} />
+        )}
+      </Shell>
+    );
+  }
+
+  const { section, quiz, nextSection } = data;
+  const qs = quiz.questions;
+  const q = qs[index];
+  const answered = picks.filter((p) => p >= 0).length;
+  const pct = Math.round(((index + 1) / qs.length) * 100);
+  const need = Math.ceil((quiz.passPercent / 100) * qs.length);
+  const toggleFlag = () => setFlags((f) => (f.includes(index) ? f.filter((n) => n !== index) : [...f, index]));
+  const pick = (i: number) => setPicks((p) => p.map((v, j) => (j === index ? i : v)));
+  const last = index === qs.length - 1;
+  const counts = qs.reduce(
     (acc, _, i) => {
       if (i === index) return acc;
       if (flags.includes(i)) acc.flag += 1;
-      else if (picks[i]) acc.ans += 1;
+      else if (picks[i] >= 0) acc.ans += 1;
       return acc;
     },
     { ans: 0, flag: 0 },
   );
-  const pct = Math.round(((index + 1) / quiz.length) * 100);
-  const toggleFlag = () => setFlags((f) => (f.includes(index) ? f.filter((n) => n !== index) : [...f, index]));
+  const finish = () => {
+    const missing = qs.length - answered;
+    if (missing > 0 && !confirm(`${missing} сұраққа жауап берілмеді. Тестті аяқтайсыз ба?`)) return;
+    void submit();
+  };
+
+  const results = outcome && (
+    <div className="qz-res">
+      <article className="qz-card qz-res__score">
+        <div className={outcome.passed ? "qz-res__ring ok" : "qz-res__ring"}>
+          <b>{outcome.score}<em>/{outcome.total}</em></b>
+          <small>{Math.round((outcome.score / outcome.total) * 100)}%</small>
+        </div>
+        <div>
+          <h2>{outcome.passed ? "Тест сәтті тапсырылды!" : "Шекке әлі жетпеді"}</h2>
+          <p>
+            {outcome.passed
+              ? nextSection
+                ? `«${nextSection.title}» бөлімі ашылды.`
+                : "Курстың соңғы тестін тапсырдыңыз."
+              : `Өту үшін кемінде ${need} дұрыс жауап керек. Төмендегі қателерді қарап, қайта тапсырыңыз.`}
+          </p>
+          <div className="qz-res__acts">
+            {outcome.passed && nextSection ? (
+              <Link to="/lesson" className="qz-next">Келесі бөлімге өту<Icon name="arrow_forward" size={16} /></Link>
+            ) : (
+              <button type="button" className="qz-next" onClick={restart}>Қайта тапсыру<Icon name="arrow_forward" size={16} /></button>
+            )}
+            {outcome.passed && <button type="button" className="qz-prev" onClick={restart}>Қайта тапсыру</button>}
+            <Link to="/course" className="qz-prev"><Icon name="arrow_back" size={16} />Курс бағдарламасы</Link>
+          </div>
+        </div>
+      </article>
+      <article className="qz-card">
+        <h3 className="qz-res__title">Жауаптар талдауы</h3>
+        <ol className="qz-review">
+          {qs.map((item, i) => {
+            const r = outcome.review[i];
+            const ok = r && r.pick === r.answer;
+            return (
+              <li key={item.id} className={ok ? "ok" : "bad"}>
+                <span className="qz-review__n">{ok ? <Icon name="check" size={16} /> : <Icon name="close" size={16} />}</span>
+                <div>
+                  <p>{i + 1}. {item.prompt}</p>
+                  <small>
+                    Сіздің жауабыңыз: <b>{r && r.pick >= 0 ? `${letters[r.pick]}) ${item.choices[r.pick]}` : "жауап жоқ"}</b>
+                    {!ok && r && <> · Дұрысы: <b>{letters[r.answer]}) {item.choices[r.answer]}</b></>}
+                  </small>
+                  {r?.explanation && <small className="qz-review__why">{r.explanation}</small>}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </article>
+    </div>
+  );
+
+  const crumbs = [{ label: "Курс", to: "/course" }, { label: `${section.order}-бөлім тесті` }];
 
   return (
-    <Shell variant="study" subtitle="Курс" flush streak={false}>
-      {/* Phone layout — frame 1:2 ("Тақырып тесті және нәтижесі (Mobile)") */}
+    <Shell variant="study" subtitle="Курс" flush streak={false} crumbs={crumbs}>
+      {/* Phone layout — frame 1:2 */}
       <div className="qm">
         <div className="qm-switch">
-          <button type="button" className={mode === "quiz" ? "on" : ""} onClick={() => setMode("quiz")}>
-            <Icon name="edit_note" size={16} />Сұрақ барысы (Quiz)
+          <button type="button" className={mode === "quiz" ? "on" : ""} onClick={() => (outcome ? restart() : setMode("quiz"))}>
+            <Icon name="edit_note" size={16} />{outcome ? "Қайта тапсыру" : "Сұрақ барысы"}
           </button>
-          <button type="button" className={mode === "result" ? "on" : ""} onClick={() => setMode("result")}>
+          <button type="button" className={mode === "result" ? "on" : ""} disabled={!outcome} onClick={() => setMode("result")}>
             <Icon name="emoji_events" size={16} />Қорытынды нәтиже
           </button>
         </div>
@@ -87,28 +227,27 @@ export function TestPage() {
             <div className="qm-card qm-head">
               <span className="qm-head__ico"><Icon name="assignment" size={18} /></span>
               <div>
-                <strong>3.3 Тақырып тесті</strong>
-                <small>Квадрат теңдеулер</small>
+                <strong>{section.order}-бөлім тесті</strong>
+                <small>{section.title}</small>
               </div>
-              <Link to="/lesson" className="qm-head__x" aria-label="Тесттен шығу"><Icon name="close" size={16} /></Link>
+              <Link to="/course" className="qm-head__x" aria-label="Тесттен шығу"><Icon name="close" size={16} /></Link>
             </div>
             <div className="qm-card qm-prog">
               <div>
-                <span><b>{index + 1} / {quiz.length} сұрақ</b> <small>({pct}%)</small></span>
+                <span><b>{index + 1} / {qs.length} сұрақ</b> <small>({pct}%)</small></span>
                 <span className="qm-prog__chips">
-                  <em className="t"><Icon name="timer" size={14} />{fmt(left)}</em>
-                  <em>Шек: 70%</em>
+                  {timed && <em className="t"><Icon name="timer" size={14} />{fmt(left)}</em>}
+                  <em>Шек: {quiz.passPercent}%</em>
                 </span>
               </div>
               <i><s style={{ width: `${pct}%` }} /></i>
             </div>
-            <div className="qm-banner">
-              <div>
-                <small>Виет теоремасы</small>
-                <b>x² − (x₁ + x₂)x + x₁x₂ = 0</b>
+            {q.formula && (
+              <div className="qm-banner">
+                <div><small>Формула</small><b>{q.formula}</b></div>
+                <span><Icon name="calculate" size={22} /></span>
               </div>
-              <span><Icon name="calculate" size={22} /></span>
-            </div>
+            )}
             <article className="qm-q">
               <header>
                 <span>Сұрақ #{index + 1}</span>
@@ -117,12 +256,12 @@ export function TestPage() {
               <p className="qm-q__text">{mathify(q.prompt)}</p>
               <p className="qm-q__hint">Бір дұрыс жауапты таңдаңыз</p>
               <div className="qm-opts">
-                {q.choices.map((c) => {
-                  const on = picks[index] === c.id;
+                {q.choices.map((c, i) => {
+                  const on = picks[index] === i;
                   return (
-                    <button key={c.id} type="button" className={on ? "on" : ""} onClick={() => setPicks({ ...picks, [index]: c.id })}>
-                      <span className="l">{c.id}</span>
-                      <span className="t">{c.label}</span>
+                    <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} onClick={() => pick(i)}>
+                      <span className="l">{letters[i]}</span>
+                      <span className="t">{c}</span>
                       <Icon name={on ? "check_circle" : "radio_button_unchecked"} size={on ? 22 : 20} />
                     </button>
                   );
@@ -130,15 +269,11 @@ export function TestPage() {
               </div>
             </article>
             <div className="qm-acts">
-              <button type="button" className={flags.includes(index) ? "qm-flag on" : "qm-flag"} onClick={toggleFlag}>
-                <Icon name="flag" size={18} fill={flags.includes(index)} />Белгілеу
+              <button type="button" className={flags.includes(index) ? "qm-flag on" : "qm-flag"} onClick={index > 0 ? () => setIndex(index - 1) : toggleFlag}>
+                {index > 0 ? <><Icon name="arrow_back" size={18} />Алдыңғы</> : <><Icon name="flag" size={18} fill={flags.includes(index)} />Белгілеу</>}
               </button>
-              <button
-                type="button"
-                className="qm-next"
-                onClick={() => (index === quiz.length - 1 ? setMode("result") : setIndex((i) => i + 1))}
-              >
-                {index === quiz.length - 1 ? "Нәтижені көру" : "Келесі сұрақ"}<Icon name="arrow_forward" size={16} />
+              <button type="button" className="qm-next" disabled={sending} onClick={() => (last ? finish() : setIndex(index + 1))}>
+                {last ? (sending ? "Тексерілуде…" : "Тестті аяқтау") : "Келесі сұрақ"}<Icon name="arrow_forward" size={16} />
               </button>
             </div>
           </>
@@ -148,20 +283,22 @@ export function TestPage() {
       <div className="qz-ctx">
         <div className="qz-ctx__info">
           <p className="qz-ctx__crumbs">
-            <span>3-бөлім: Теңдеулер</span>
+            <span>{section.order}-бөлім</span>
             <Icon name="chevron_right" size={12} />
-            <span>3.3 Виет теоремасы</span>
+            <span>{section.title}</span>
             <Icon name="chevron_right" size={12} />
             <em>Тақырып тесті</em>
           </p>
-          <h1>3.3 Виет теоремасы — Тақырыптық сынақ тест</h1>
-          <p className="qz-ctx__note">Келесі тақырыпты (<b>«3.4 Модуль бар теңдеулер»</b>) ашу үшін кемінде 70% (7/10) жинау қажет.</p>
+          <h1>{section.title}: тақырыптық тест</h1>
+          <p className="qz-ctx__note">
+            {nextSection ? <>Келесі бөлімді (<b>«{nextSection.title}»</b>) ашу үшін</> : "Тестті өту үшін"} кемінде {quiz.passPercent}% ({need}/{qs.length}) жинау қажет.
+          </p>
         </div>
         <div className="qz-toggle">
-          <button type="button" className={mode === "quiz" ? "on" : ""} onClick={() => setMode("quiz")}>
-            <Icon name="edit_note" size={15} />Тест тапсыру
+          <button type="button" className={mode === "quiz" ? "on" : ""} onClick={() => (outcome && mode === "result" ? restart() : setMode("quiz"))}>
+            <Icon name="edit_note" size={15} />{outcome ? "Қайта тапсыру" : "Тест тапсыру"}
           </button>
-          <button type="button" className={mode === "result" ? "on" : ""} onClick={() => setMode("result")}>
+          <button type="button" className={mode === "result" ? "on" : ""} disabled={!outcome} onClick={() => setMode("result")}>
             <Icon name="workspace_premium" size={14} />Нәтижелер көрінісі
           </button>
         </div>
@@ -169,64 +306,21 @@ export function TestPage() {
 
       <div className="qz">
         {mode === "result" ? (
-          <div className="qz-res">
-            <article className="qz-card qz-res__score">
-              <div className={score >= 7 ? "qz-res__ring ok" : "qz-res__ring"}>
-                <b>{score}<em>/10</em></b>
-                <small>{score * 10}%</small>
-              </div>
-              <div>
-                <h2>{score >= 7 ? "Тест сәтті тапсырылды!" : "Шекке әлі жетпеді"}</h2>
-                <p>{score >= 7 ? "«3.4 Модуль бар теңдеулер» тақырыбы ашылды." : "Келесі тақырыпты ашу үшін кемінде 7 дұрыс жауап қажет. Қатемен жұмыс жасап, қайта тапсырыңыз."}</p>
-                <div className="qz-res__acts">
-                  <button
-                    type="button"
-                    className="qz-next"
-                    onClick={() => {
-                      setPicks({});
-                      setFlags([]);
-                      setIndex(0);
-                      setMode("quiz");
-                    }}
-                  >
-                    Қайта тапсыру<Icon name="arrow_forward" size={16} />
-                  </button>
-                  <Link to="/lesson" className="qz-prev"><Icon name="arrow_back" size={16} />Сабаққа оралу</Link>
-                </div>
-              </div>
-            </article>
-            <article className="qz-card">
-              <h3 className="qz-res__title">Жауаптар талдауы</h3>
-              <ol className="qz-review">
-                {quiz.map((item, i) => {
-                  const ok = picks[i] === item.answer;
-                  return (
-                    <li key={item.prompt} className={ok ? "ok" : "bad"}>
-                      <span className="qz-review__n">{ok ? <Icon name="check" size={16} /> : <Icon name="close" size={16} />}</span>
-                      <div>
-                        <p>{i + 1}. {item.prompt}</p>
-                        <small>Жауабыңыз: <b>{picks[i] || "—"}</b> · Дұрысы: <b>{item.answer}</b> · {item.hint}</small>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ol>
-            </article>
-          </div>
+          results
         ) : (
           <div className="qz-grid">
             <div className="qz-main">
               <article className="qz-card qz-status">
                 <div className="qz-status__prog">
                   <div>
-                    <b><Icon name="quiz" size={18} />Сұрақ: {index + 1} / {quiz.length}</b>
-                    <span>{pct}% аяқталды</span>
+                    <b><Icon name="quiz" size={18} />Сұрақ: {index + 1} / {qs.length}</b>
+                    <span>{answered} жауап берілді</span>
                   </div>
                   <i><s style={{ width: `${pct}%` }} /></i>
                 </div>
                 <div className="qz-status__chips">
-                  <span className="qz-timer"><Icon name="schedule" size={20} color="#9d4300" />{fmt(left)}</span>
-                  <span className="qz-limit"><b>Шек: 70%</b><small>7/10 дұрыс</small></span>
+                  {timed && <span className={left < 60 ? "qz-timer low" : "qz-timer"}><Icon name="schedule" size={20} color="#9d4300" />{fmt(left)}</span>}
+                  <span className="qz-limit"><b>Шек: {quiz.passPercent}%</b><small>{need}/{qs.length} дұрыс</small></span>
                 </div>
               </article>
 
@@ -234,7 +328,7 @@ export function TestPage() {
                 <header>
                   <div>
                     <span className="chip">{index + 1}-сұрақ</span>
-                    <span className={`chip lvl ${levelTone(q.level)}`}>{q.level}</span>
+                    <span className={`chip lvl ${q.level}`}>{levelName[q.level]}</span>
                     <span className="chip gray">1 балл</span>
                   </div>
                   <button type="button" className={flags.includes(index) ? "qz-flag on" : "qz-flag"} onClick={toggleFlag}>
@@ -242,17 +336,16 @@ export function TestPage() {
                   </button>
                 </header>
                 <p className="qz-q__text">{mathify(q.prompt)}</p>
-                <div className="qz-eq">
-                  <b>x² + px + q = 0</b>
-                  <span>мұндағы: <i>{q.hint}</i></span>
-                </div>
+                {q.formula && (
+                  <div className="qz-eq"><b>{q.formula}</b></div>
+                )}
                 <div className="qz-opts">
-                  {q.choices.map((c) => {
-                    const on = picks[index] === c.id;
+                  {q.choices.map((c, i) => {
+                    const on = picks[index] === i;
                     return (
-                      <button key={c.id} type="button" className={on ? "on" : ""} onClick={() => setPicks({ ...picks, [index]: c.id })}>
-                        <span className="qz-opts__l">{c.id}</span>
-                        <span className="qz-opts__t">{c.label}</span>
+                      <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} onClick={() => pick(i)}>
+                        <span className="qz-opts__l">{letters[i]}</span>
+                        <span className="qz-opts__t">{c}</span>
                         <span className="qz-opts__r">{on && <Icon name="check" size={16} />}</span>
                       </button>
                     );
@@ -263,16 +356,10 @@ export function TestPage() {
                     <Icon name="arrow_back" size={16} />Алдыңғы сұрақ
                   </button>
                   <div>
-                    <button type="button" className="qz-end" onClick={() => setMode("result")}>Тестті аяқтау</button>
-                    {index === quiz.length - 1 ? (
-                      <button type="button" className="qz-next" onClick={() => setMode("result")}>
-                        Нәтижені көру<Icon name="arrow_forward" size={16} />
-                      </button>
-                    ) : (
-                      <button type="button" className="qz-next" onClick={() => setIndex((i) => i + 1)}>
-                        Келесі сұрақ<Icon name="arrow_forward" size={16} />
-                      </button>
-                    )}
+                    {!last && <button type="button" className="qz-end" onClick={finish}>Тестті аяқтау</button>}
+                    <button type="button" className="qz-next" disabled={sending} onClick={() => (last ? finish() : setIndex((i) => i + 1))}>
+                      {last ? (sending ? "Тексерілуде…" : "Тестті аяқтау") : "Келесі сұрақ"}<Icon name="arrow_forward" size={16} />
+                    </button>
                   </div>
                 </footer>
               </article>
@@ -282,13 +369,13 @@ export function TestPage() {
               <article className="qz-card qz-matrix">
                 <header>
                   <h3><Icon name="apps" size={18} color="#00236f" />Сұрақтар матрицасы</h3>
-                  <small>{quiz.length} сұрақ</small>
+                  <small>{qs.length} сұрақ</small>
                 </header>
                 <div className="qz-matrix__grid">
-                  {quiz.map((_, i) => {
-                    const cls = i === index ? "cur" : flags.includes(i) ? "flag" : picks[i] ? "ans" : "";
+                  {qs.map((_, i) => {
+                    const cls = i === index ? "cur" : flags.includes(i) ? "flag" : picks[i] >= 0 ? "ans" : "";
                     return (
-                      <button key={i} type="button" className={cls} onClick={() => setIndex(i)}>
+                      <button key={i} type="button" className={cls} aria-label={`${i + 1}-сұрақ`} onClick={() => setIndex(i)}>
                         {i + 1}
                         {cls === "flag" && <i />}
                       </button>
@@ -299,7 +386,7 @@ export function TestPage() {
                   <li><i className="ans" />Жауап берілді ({counts.ans})</li>
                   <li><i className="cur" />Ағымдағы (1)</li>
                   <li><i className="flag" />Белгіленген ({counts.flag})</li>
-                  <li><i />Ашылмаған ({quiz.length - 1 - counts.ans - counts.flag})</li>
+                  <li><i />Ашылмаған ({qs.length - 1 - counts.ans - counts.flag})</li>
                 </ul>
               </article>
             </aside>

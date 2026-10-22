@@ -166,3 +166,6 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 @media (max-width: 1100px) { .acc__grid { grid-template-columns: 1fr; } }
 .auth-aside__note { margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.15); font: 400 14px/21px var(--text); color: var(--lav); }
 .cab-hello__pills > a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 9999px; white-space: nowrap; }
+
+/* Left-aligned section titles share the 1200px column with their content on wide screens. */
+.ln-sec--tint > .ln-title--left { max-width: 1200px; }

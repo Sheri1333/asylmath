@@ -5,7 +5,7 @@ import { connectDb, isDbReady } from "./db.js";
 import { authRouter } from "./routes/auth.js";
 import { coursesRouter } from "./routes/courses.js";
 import { enrollmentsRouter } from "./routes/enrollments.js";
-import { adminRouter } from "./routes/admin.js";
+import { adminRouter, UPLOAD_DIR } from "./routes/admin.js";
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -38,7 +38,27 @@ const app = express();
 app.disable("x-powered-by");
 app.use(corsMw);
 app.options(/.*/, corsMw);
-app.use(express.json({ limit: "4mb" }));
+app.use(express.json({ limit: "10mb" }));
+
+// Uploaded lesson materials. Served before the DB check so files work while Mongo reconnects.
+app.use("/api/files", express.static(UPLOAD_DIR, { maxAge: "7d", fallthrough: false, dotfiles: "deny" }));
+
+// Slow down password guessing: 20 attempts per IP per 15 minutes on login/register.
+const attempts = new Map<string, { n: number; until: number }>();
+app.use(["/api/auth/login", "/api/auth/register"], (req, res, next) => {
+  if (req.method !== "POST") return next();
+  const key = String(req.headers["x-real-ip"] ?? req.ip ?? "");
+  const now = Date.now();
+  const cur = attempts.get(key);
+  const entry = cur && cur.until > now ? cur : { n: 0, until: now + 15 * 60_000 };
+  entry.n += 1;
+  attempts.set(key, entry);
+  if (entry.n > 20) {
+    res.status(429).json({ error: "Тым көп әрекет. 15 минуттан кейін қайталаңыз." });
+    return;
+  }
+  next();
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({
