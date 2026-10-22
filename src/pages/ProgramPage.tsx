@@ -31,7 +31,7 @@ export function ProgramPage() {
           <div>
             <h1>{course.title}</h1>
             <p>
-              <Icon name="menu_book" size={20} color="#00236f" />
+              <Icon name="menu_book" size={20} color="var(--navy)" />
               <span>{outline.length} бөлім, {total} сабақ</span>
               {access && (
                 <>

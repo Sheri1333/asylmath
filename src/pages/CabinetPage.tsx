@@ -57,7 +57,7 @@ export function CabinetPage() {
           <div>
             <h1>Сәлем, {name}! <span>👋</span></h1>
             <p>
-              <Icon name="hourglass_bottom" size={20} color="#00236f" />
+              <Icon name="hourglass_bottom" size={20} color="var(--navy)" />
               <span>ҰБТ-ға <b>{daysToUbt()} күн</b> қалды</span>
               <i />
               <span className="gray">{course.title}</span>
@@ -147,20 +147,20 @@ export function CabinetPage() {
                   <svg viewBox={`0 0 ${W} 224`} role="img" aria-label="Тест нәтижелері бөлімдер бойынша">
                     <defs>
                       <linearGradient id="cabArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0" stopColor="#1e3a8a" stopOpacity=".25" />
-                        <stop offset="1" stopColor="#1e3a8a" stopOpacity="0" />
+                        <stop offset="0" stopColor="var(--indigo)" stopOpacity=".25" />
+                        <stop offset="1" stopColor="var(--indigo)" stopOpacity="0" />
                       </linearGradient>
                     </defs>
                     {[25, 81, 137, 193].map((y) => (
-                      <line key={y} x1="32" x2="555" y1={y} y2={y} stroke="#e2e8ff" strokeWidth="1.16" />
+                      <line key={y} x1="32" x2="555" y1={y} y2={y} stroke="var(--line)" strokeWidth="1.16" />
                     ))}
-                    <line x1="32" x2="555" y1={goalY} y2={goalY} stroke="#fd761a" strokeWidth="2.3" strokeDasharray="7 6" opacity=".85" />
+                    <line x1="32" x2="555" y1={goalY} y2={goalY} stroke="var(--orange)" strokeWidth="2.3" strokeDasharray="7 6" opacity=".85" />
                     <text x="555" y={goalY - 7} textAnchor="end" className="goal">Өту шегі 70%</text>
                     {xy.length > 1 && <path d={`${line} L${xy[xy.length - 1][0]} 193 L${xy[0][0]} 193 Z`} fill="url(#cabArea)" />}
-                    {xy.length > 1 && <path d={line} fill="none" stroke="#00236f" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />}
+                    {xy.length > 1 && <path d={line} fill="none" stroke="var(--navy)" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />}
                     {xy.map(([x, y], i) => (
                       <g key={i}>
-                        <circle cx={x} cy={y} r="5" fill={pts[i].pct >= 70 ? "#fff" : "#fd761a"} stroke="#00236f" strokeWidth="2.9" />
+                        <circle cx={x} cy={y} r="5" fill={pts[i].pct >= 70 ? "#fff" : "var(--orange)"} stroke="var(--navy)" strokeWidth="2.9" />
                         <text x={x} y={y - 12} textAnchor="middle" className="val">{pts[i].pct}%</text>
                       </g>
                     ))}
@@ -211,20 +211,20 @@ export function CabinetPage() {
               <article>
                 <div className="cab-ring">
                   <svg viewBox="0 0 48 48" aria-hidden>
-                    <circle cx="24" cy="24" r="21" fill="none" stroke="#e2e7ff" strokeWidth="4.67" />
-                    <circle cx="24" cy="24" r="21" fill="none" stroke="#004942" strokeWidth="4.67" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 21 * (progress / 100)} 999`} transform="rotate(-90 24 24)" />
+                    <circle cx="24" cy="24" r="21" fill="none" stroke="var(--lav)" strokeWidth="4.67" />
+                    <circle cx="24" cy="24" r="21" fill="none" stroke="var(--teal)" strokeWidth="4.67" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 21 * (progress / 100)} 999`} transform="rotate(-90 24 24)" />
                   </svg>
                   <b>{progress}%</b>
                 </div>
                 <small>курс<br />өтілді</small>
               </article>
               <article>
-                <span className="cab-kpis__ico peach"><Icon name="play_lesson" size={20} color="#9d4300" /></span>
+                <span className="cab-kpis__ico peach"><Icon name="play_lesson" size={20} color="var(--brown)" /></span>
                 <strong>{doneCount}<em>/{lessons.length}</em></strong>
                 <small>сабақ</small>
               </article>
               <article>
-                <span className="cab-kpis__ico"><Icon name="verified" size={24} color="#00236f" /></span>
+                <span className="cab-kpis__ico"><Icon name="verified" size={24} color="var(--navy)" /></span>
                 <strong>{passed}<em>/{quizTotal}</em></strong>
                 <small>тест өтті</small>
               </article>
@@ -233,7 +233,7 @@ export function CabinetPage() {
             <article className="cab-card cab-test">
               <header>
                 <h4>Келесі тест</h4>
-                <Icon name="event_available" size={22} color="#9d4300" />
+                <Icon name="event_available" size={22} color="var(--brown)" />
               </header>
               {quizNext && quizNext.quiz ? (
                 <>
@@ -246,7 +246,7 @@ export function CabinetPage() {
                   </div>
                   {quizNext.quiz.timeLimitMinutes > 0 && (
                     <div className="cab-test__count">
-                      <Icon name="timer" size={20} color="#00236f" />
+                      <Icon name="timer" size={20} color="var(--navy)" />
                       <span>Уақыты: <b>{quizNext.quiz.timeLimitMinutes} минут</b></span>
                     </div>
                   )}
@@ -275,8 +275,8 @@ export function CabinetPage() {
               ) : (
                 weak.map(({ s, pct }) => (
                   <div key={s.id} className="cab-weak__row">
-                    <div><span>{s.title}</span><b style={{ color: pct < 50 ? "#ba1a1a" : "#9d4300" }}>{pct}%</b></div>
-                    <i><s style={{ width: `${pct}%`, background: pct < 50 ? "#ba1a1a" : "#9d4300" }} /></i>
+                    <div><span>{s.title}</span><b style={{ color: pct < 50 ? "var(--red)" : "var(--brown)" }}>{pct}%</b></div>
+                    <i><s style={{ width: `${pct}%`, background: pct < 50 ? "var(--red)" : "var(--brown)" }} /></i>
                     <Link to={`/tests/${s.id}`}>Қайталау</Link>
                   </div>
                 ))

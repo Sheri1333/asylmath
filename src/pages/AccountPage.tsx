@@ -30,7 +30,7 @@ export function AccountPage() {
             <span className="acc__ava">{name.slice(0, 1).toUpperCase()}</span>
             <div>
               <h1>{name}</h1>
-              <p><Icon name="person" size={20} color="#00236f" /><span>{user?.email}</span></p>
+              <p><Icon name="person" size={20} color="var(--navy)" /><span>{user?.email}</span></p>
             </div>
           </div>
           <div className="cab-hello__pills">

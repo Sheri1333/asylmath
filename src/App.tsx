@@ -16,6 +16,7 @@ import "./styles/phone.css";
 import "./styles/polish.css";
 import "./styles/mvp.css";
 import "./styles/landing.css";
+import "./styles/theme.css";
 
 export function App() {
   return (

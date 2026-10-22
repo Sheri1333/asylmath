@@ -113,7 +113,7 @@ export function StudyLessonPage() {
             <span className="les-item__body">
               <strong>{i + 1}. {l.title}</strong>
               <small>
-                {on ? <Icon name="graphic_eq" size={18} color="#9d4300" /> : <Icon name="play_circle" size={18} />}
+                {on ? <Icon name="graphic_eq" size={18} color="var(--brown)" /> : <Icon name="play_circle" size={18} />}
                 {l.durationMinutes} мин
               </small>
             </span>
@@ -201,7 +201,7 @@ export function StudyLessonPage() {
           <em>{pos}-сабақ: {lesson.title}</em>
         </div>
         <div className="les-bar__right">
-          <span><Icon name="verified" size={20} color="#9d4300" />{course.title}</span>
+          <span><Icon name="verified" size={20} color="var(--brown)" />{course.title}</span>
         </div>
       </div>
 
@@ -262,7 +262,7 @@ function Files({ items }: { items: Material[] }) {
   return (
     <section className="les-files">
       <header>
-        <h3><Icon name="link" size={22} color="#00236f" />Сабақ материалдары</h3>
+        <h3><Icon name="link" size={22} color="var(--navy)" />Сабақ материалдары</h3>
         <small>Барлығы {items.length} файл</small>
       </header>
       {items.map((m) => {

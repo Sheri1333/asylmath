@@ -15,7 +15,7 @@ const blankCourse = (): EditCourse => ({
   subject: "Математика",
   level: "beginner",
   description: "",
-  coverColor: "#00236f",
+  coverColor: "var(--navy)",
   isFree: false,
   priceTenge: 9990,
   published: false,

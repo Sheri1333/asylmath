@@ -103,7 +103,7 @@ export function Shell({
         <div className="side__bottom">
           {streak && (
             <div className="side__streak">
-              <Icon name="local_fire_department" size={20} color="#9d4300" />
+              <Icon name="local_fire_department" size={20} color="var(--brown)" />
               <span>
                 <b>14 күн streak</b>
                 <small>Күнделікті есеп</small>

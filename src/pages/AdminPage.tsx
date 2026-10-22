@@ -83,7 +83,7 @@ export function AdminPage() {
         <section className="cab-hello">
           <div>
             <h1>Админ-панель</h1>
-            <p><Icon name="admin_panel_settings" size={20} color="#00236f" /><span>Курсы, оплаты и ученики</span></p>
+            <p><Icon name="admin_panel_settings" size={20} color="var(--navy)" /><span>Курсы, оплаты и ученики</span></p>
           </div>
           <div className="qz-toggle" role="tablist">
             {([

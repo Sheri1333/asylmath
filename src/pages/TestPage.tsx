@@ -251,7 +251,7 @@ export function TestPage() {
             <article className="qm-q">
               <header>
                 <span>Сұрақ #{index + 1}</span>
-                <small><Icon name="star" size={16} color="#fd761a" />1 ұпай</small>
+                <small><Icon name="star" size={16} color="var(--orange)" />1 ұпай</small>
               </header>
               <p className="qm-q__text">{mathify(q.prompt)}</p>
               <p className="qm-q__hint">Бір дұрыс жауапты таңдаңыз</p>
@@ -319,7 +319,7 @@ export function TestPage() {
                   <i><s style={{ width: `${pct}%` }} /></i>
                 </div>
                 <div className="qz-status__chips">
-                  {timed && <span className={left < 60 ? "qz-timer low" : "qz-timer"}><Icon name="schedule" size={20} color="#9d4300" />{fmt(left)}</span>}
+                  {timed && <span className={left < 60 ? "qz-timer low" : "qz-timer"}><Icon name="schedule" size={20} color="var(--brown)" />{fmt(left)}</span>}
                   <span className="qz-limit"><b>Шек: {quiz.passPercent}%</b><small>{need}/{qs.length} дұрыс</small></span>
                 </div>
               </article>
@@ -368,7 +368,7 @@ export function TestPage() {
             <aside className="qz-side">
               <article className="qz-card qz-matrix">
                 <header>
-                  <h3><Icon name="apps" size={18} color="#00236f" />Сұрақтар матрицасы</h3>
+                  <h3><Icon name="apps" size={18} color="var(--navy)" />Сұрақтар матрицасы</h3>
                   <small>{qs.length} сұрақ</small>
                 </header>
                 <div className="qz-matrix__grid">
