@@ -30,7 +30,7 @@
   .lm-chips { display: flex; gap: 6px; flex-wrap: wrap; }
   .lm-chips span { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; background: var(--soft); font: 500 12px/16px var(--text); letter-spacing: 0.24px; color: var(--muted); }
   .lm-chips .ubt { padding: 2px 10px; background: var(--lav2); color: #00164e; font-weight: 700; letter-spacing: 0.3px; }
-  .lm-chips .alg { background: var(--mint); color: #00201d; font-weight: 600; }
+  .lm-chips .alg { background: var(--mint); color: #00236f; font-weight: 600; }
   .lm-meta h1 { padding-top: 4px; font: 700 24px/32px var(--head); letter-spacing: -0.6px; color: var(--navy); }
   .lm-meta p { font: 400 14px/20px var(--text); color: var(--muted); }
 
@@ -51,7 +51,7 @@
   .lm-card h4 { padding-top: 4px; font: 700 14px/20px var(--text); letter-spacing: 0.14px; color: var(--navy); }
   .lm-card ul { display: flex; flex-direction: column; gap: 10px; }
   .lm-card li { display: flex; gap: 10px; font: 400 14px/20px var(--text); color: var(--ink); }
-  .lm-card li > span { margin-top: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--mint); color: #00201d; display: grid; place-items: center; flex-shrink: 0; }
+  .lm-card li > span { margin-top: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--mint); color: #00236f; display: grid; place-items: center; flex-shrink: 0; }
 
   .lm-board { position: relative; overflow: hidden; background: var(--navy); border-radius: 12px; box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1); padding: 24px; display: flex; flex-direction: column; gap: 12px; }
   .lm-board header { display: flex; align-items: center; justify-content: space-between; }

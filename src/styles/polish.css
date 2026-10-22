@@ -40,7 +40,7 @@
 .ln-try__opts button:not(:disabled):hover { background: var(--lav); border-color: var(--lav3); }
 .ln-try__opts button:not(:disabled):active { transform: scale(0.98); }
 .ln-try__opts button:disabled { cursor: default; }
-.ln-try__opts button.ok { background: rgba(137, 245, 231, 0.45); border-color: #4ebdb0; color: #00201d; }
+.ln-try__opts button.ok { background: rgba(214, 227, 255, 0.45); border-color: #1e6fff; color: #00236f; }
 .ln-try__opts button.ok b { background: var(--teal); color: #fff; }
 .ln-try__opts button.bad { background: var(--pink); border-color: #f2a9a2; color: #93000a; }
 .ln-try__opts button.bad b { background: var(--red); color: #fff; }
@@ -120,7 +120,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
   overflow: hidden;
   border-radius: 24px;
   padding: 36px;
-  background: linear-gradient(150deg, #00236f 0%, #1e3a8a 60%, #00312c 100%);
+  background: linear-gradient(150deg, #00236f 0%, #1e3a8a 60%, #001a52 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
