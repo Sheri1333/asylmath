@@ -1,76 +1,29 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { Icon } from "../components/Icon";
 import { faqs, modules } from "../data/content";
 
-const stats = [
-  { icon: "view_timeline", title: "11 бөлім", text: "ҰБТ-ның барлық тақырыптары нөлден жүйелі\nтүрде қарастырылады." },
-  { icon: "fact_check", title: "Әр сұраққа қатемен жұмыс", text: "Әрбір тапсырма бойынша толық талдау,\nқателерді анықтау және қайта пысықтау жүйесі." },
-  { icon: "assignment_turned_in", title: "Апталық тест", text: "Нағыз ҰБТ форматындағы сынақ және қатемен\nжеке жұмыс алгоритмі." },
-];
-
-const steps = [
-  { n: 1, title: "Тіркел және төле", text: "Платформаға бір сәтте\nқолжетімділік алып, оқуды бірден\nбастаңыз. Ешқандай кідіріссіз." },
-  { n: 2, title: "Видеосабақты көр", text: "Әр тақырып қарапайым тілде,\nформулаларды жаттамай,\nмағынасын түсіндіру арқылы\nөтеді." },
-  { n: 3, title: "Мини-тест тапсыр", text: "Геймификация жүйесі білімді\nбекітіп, тәртіпке баулиды — келесі\nсабақ тапсырмадан соң ашылады.", accent: true },
-  { n: 4, title: "Сынақ ҰБТ тапсыр", text: "Апта сайын нақты уақытпен\nжаттығып, емтихан стрессіне\nқарсы психологиялық тұрғыда\nдайын боласыз." },
-];
-
-const chapterIcons = ["menu_book", "menu_book", "play_lesson", "play_lesson", "description", "quiz", "analytics", "architecture", "view_in_ar", "calculate", "fact_check"];
-
-const bars = [
-  { v: 32, w: "1-апта" },
-  { v: 37, w: "2-апта" },
-  { v: 41, w: "3-апта" },
-  { v: 45, w: "4-апта", dim: true },
-  { v: 48, w: "5-апта", now: true },
-];
-
-const perks = [
-  "11 бөлім бойынша барлық толық видеосабақтар (100+\nдәріс)",
-  "Әр сабаққа арналған жүктелмелі конспектілер мен\nформулалар шпаргалкасы",
-  "24 апталық ҰБТ форматындағы нақты сынақ тесттер",
-  "MATH ASYL жеке кабинеті және әлсіз тақырыптар\nаналитикасы",
-  "Мұғаліммен және жеке куратормен чатта тікелей\nбайланыс",
-  "2026 жылғы ҰБТ аяқталғанға дейін шексіз\nқолжетімділік",
-];
-
-function Brand() {
-  return (
-    <Link to="/" className="ln-brand">
-      <img src="/assets/logo.png" alt="" />
-      <span>
-        MATH <em>ASYL</em>
-      </span>
-    </Link>
-  );
-}
-
-function Title({ badge, title, sub, left }: { badge: string; title: string; sub: string; left?: boolean }) {
-  return (
-    <div className={left ? "ln-title ln-title--left" : "ln-title"}>
-      <span className="ln-pill">{badge}</span>
-      <h2>{title}</h2>
-      <p>{sub}</p>
-    </div>
-  );
-}
+const WHATSAPP = "https://wa.me/77771234567";
+const PHONE = "+7 (777) 123-45-67";
 
 const tries = [
   {
+    topic: "Квадрат теңдеулер",
     q: "x² − 5x + 6 = 0 теңдеуінің түбірлерінің қосындысы неге тең?",
     options: ["5", "−5", "6", "−6"],
     answer: 0,
     why: "Виет теоремасы бойынша x₁ + x₂ = −p. Мұнда p = −5, сондықтан қосынды 5.",
   },
   {
+    topic: "Кері Виет теоремасы",
     q: "Түбірлері 3 және −5 болатын келтірілген квадрат теңдеу қайсы?",
     options: ["x² + 2x − 15 = 0", "x² − 2x − 15 = 0", "x² + 2x + 15 = 0", "x² − 8x + 15 = 0"],
     answer: 0,
     why: "Қосынды 3 + (−5) = −2, демек p = 2. Көбейтінді 3 · (−5) = −15, демек q = −15.",
   },
   {
+    topic: "Виет теоремасы",
     q: "x² + x − 12 = 0 теңдеуінің түбірлерінің көбейтіндісі неге тең?",
     options: ["12", "−12", "1", "−1"],
     answer: 1,
@@ -78,333 +31,375 @@ const tries = [
   },
 ];
 
+const why = [
+  { icon: "play_lesson", title: "Түсінікті видеосабақтар", text: "11 бөлім нөлден бастап: формуланы жаттамай, мағынасын түсіндіреміз." },
+  { icon: "fact_check", title: "Әр сұраққа талдау", text: "Тесттен кейін әр қатенің түсіндірмесі бар: қайда, неге қателестің." },
+  { icon: "timer", title: "ҰБТ форматындағы тест", text: "Уақыт шектеулі тақырыптық тесттер нағыз емтиханға үйретеді." },
+  { icon: "monitoring", title: "Жеке кабинет", text: "Прогресс, нәтижелер графигі және қайталауды қажет ететін тақырыптар." },
+];
+
+const steps = [
+  { icon: "person", title: "Тіркел", text: "Аккаунт аш та, тегін сабақпен бірден танысып шық." },
+  { icon: "play_circle", title: "Сабақты көр", text: "Видео мен конспект: әр тақырып қарапайым тілде." },
+  { icon: "quiz", title: "Тест тапсыр", text: "Бөлім соңындағы тест келесі тақырыпты ашады." },
+  { icon: "emoji_events", title: "Балыңды көтер", text: "Қателерді талда, әлсіз тақырыптарды қайтала." },
+];
+
+const perks = [
+  "11 бөлім бойынша барлық видеосабақтар",
+  "Әр сабаққа конспект пен формулалар шпаргалкасы",
+  "Әр бөлімнен кейін ҰБТ форматындағы тест",
+  "Жеке кабинет және әлсіз тақырыптар аналитикасы",
+  "Мұғаліммен және куратормен байланыс",
+  "2026 жылғы ҰБТ аяқталғанша қолжетімділік",
+];
+
+function Brand() {
+  return (
+    <Link to="/" className="lp-brand" aria-label="MATH ASYL, басты бет">
+      <img src="/assets/logo.png" alt="" />
+      <span>
+        MATH ASYL
+        <small>ҰБТ математика</small>
+      </span>
+    </Link>
+  );
+}
+
+function Head({ pill, children, sub, dark }: { pill: string; children: ReactNode; sub?: string; dark?: boolean }) {
+  return (
+    <div className={dark ? "lp-head-block dark" : "lp-head-block"} data-reveal>
+      <span className={dark ? "lp-pill dark" : "lp-pill"}><i />{pill}</span>
+      <h2>{children}</h2>
+      {sub && <p>{sub}</p>}
+    </div>
+  );
+}
+
 /** A real ҰБТ-style problem in the hero: the fastest way to show what the course teaches. */
 function HeroTry({ cta }: { cta: string }) {
   const [n, setN] = useState(0);
   const [pick, setPick] = useState<number | null>(null);
+  const [left, setLeft] = useState(30);
   const t = tries[n];
   const done = pick !== null;
   const right = pick === t.answer;
+
+  useEffect(() => {
+    if (done || left === 0) return;
+    const id = window.setTimeout(() => setLeft((v) => v - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [left, done]);
+
+  function next() {
+    setN((n + 1) % tries.length);
+    setPick(null);
+    setLeft(30);
+  }
+
   return (
-    <aside className="ln-try" aria-labelledby="try-q">
-      <header>
-        <span className="ln-try__badge"><Icon name="functions" size={16} />Есеп {n + 1} / {tries.length}</span>
-        <span className="ln-try__time"><Icon name="timer" size={16} />30 секунд</span>
-      </header>
-      <p id="try-q" className="ln-try__q">{t.q}</p>
-      <div className="ln-try__opts" role="group" aria-label="Жауап нұсқалары">
-        {t.options.map((o, i) => {
-          const state = !done ? "" : i === t.answer ? "ok" : i === pick ? "bad" : "dim";
-          return (
-            <button key={o} type="button" className={state} disabled={done} onClick={() => setPick(i)}>
-              <b>{"ABCD"[i]}</b>
-              {o}
-            </button>
-          );
-        })}
-      </div>
-      <div className={done ? (right ? "ln-try__why ok" : "ln-try__why bad") : "ln-try__why"} aria-live="polite">
-        {done ? (
-          <>
-            <strong><Icon name={right ? "check_circle" : "lightbulb"} size={18} fill={right} />{right ? "Дұрыс!" : "Дұрыс жауап: " + "ABCD"[t.answer]}</strong>
-            <p>{t.why}</p>
-          </>
-        ) : (
-          <p>Жауапты таңдаңыз, шешімін бірден көресіз.</p>
-        )}
-      </div>
-      {done && (
-        <footer>
-          <button type="button" className="ln-try__next" onClick={() => { setN((n + 1) % tries.length); setPick(null); }}>
-            Келесі есеп
-          </button>
-          <Link to={cta} className="ln-try__go">Курсқа жазылу<Icon name="arrow_forward" size={14} /></Link>
-        </footer>
-      )}
-    </aside>
+    <div className="lp-try-wrap">
+      <aside className="lp-try" aria-labelledby="try-q">
+        <header>
+          <span className="lp-try__title"><span className="lp-tile sm"><Icon name="assignment" size={16} /></span>Өзіңді сынап көр</span>
+          <span className={left <= 10 && !done ? "lp-try__time low" : "lp-try__time"}><Icon name="timer" size={15} />00:{String(left).padStart(2, "0")}</span>
+        </header>
+        <p className="lp-try__topic">{t.topic}</p>
+        <p id="try-q" className="lp-try__q">{t.q}</p>
+        <div className="lp-try__opts" role="group" aria-label="Жауап нұсқалары">
+          {t.options.map((o, i) => {
+            const state = !done ? "" : i === t.answer ? "ok" : i === pick ? "bad" : "dim";
+            return (
+              <button key={o} type="button" className={state} disabled={done} onClick={() => setPick(i)}>
+                <b>{"АБВГ"[i]}</b>
+                {o}
+                {done && i === t.answer && <Icon name="check_circle" size={20} fill />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="lp-try__foot" aria-live="polite">
+          {done ? (
+            <>
+              <p className={right ? "ok" : "bad"}>
+                <strong>{right ? "Дұрыс!" : `Дұрыс жауап: ${"АБВГ"[t.answer]}.`}</strong> {t.why}
+              </p>
+              <div className="lp-try__acts">
+                <button type="button" className="lp-btn lp-btn--ghost sm" onClick={next}>Келесі есеп</button>
+                <Link to={cta} className="lp-btn lp-btn--teal sm">Курсқа жазылу<span className="lp-btn__arrow"><Icon name="arrow_forward" size={14} /></span></Link>
+              </div>
+            </>
+          ) : (
+            <p className="lp-try__meta"><Icon name="check" size={14} />Есеп {n + 1} / {tries.length}, жауапты таңдаңыз</p>
+          )}
+        </div>
+      </aside>
+      <span className="lp-float lp-float--a"><Icon name="monitoring" size={16} />Шешімі бірден</span>
+    </div>
   );
+}
+
+/** Fade-and-rise for blocks as they scroll into view. Off when the visitor asks for reduced motion. */
+function useReveal() {
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const items = [...el.querySelectorAll<HTMLElement>("[data-reveal]")];
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
+      items.forEach((i) => i.classList.add("is-in"));
+      return;
+    }
+    el.classList.add("lp--reveal");
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add("is-in");
+          io.unobserve(e.target);
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
+    );
+    items.forEach((i) => io.observe(i));
+    return () => io.disconnect();
+  }, []);
+  return root;
 }
 
 export function LandingPage() {
   const { user } = useAuth();
-  const [open, setOpen] = useState(-1);
-  const cabinet = user ? "/home" : "/login";
+  const [open, setOpen] = useState(0);
+  const [menu, setMenu] = useState(false);
+  const join = user ? "/course" : "/register";
+  const root = useReveal();
+
+  useEffect(() => {
+    document.title = "MATH ASYL — ҰБТ математикасына дайындық";
+  }, []);
 
   return (
-    <div className="land">
-      <header className="ln-head">
-        <div className="ln-head__row">
+    <div className="lp" ref={root}>
+      <header className="lp-top">
+        <div className="lp-top__row">
           <Brand />
-          <nav className="ln-nav" aria-label="Бет бөлімдері">
+          <nav className={menu ? "lp-nav open" : "lp-nav"} aria-label="Бет бөлімдері" onClick={() => setMenu(false)}>
+            <a href="#why">Неге біз</a>
             <a href="#program">Бағдарлама</a>
             <a href="#teacher">Мұғалім</a>
             <a href="#price">Бағасы</a>
             <a href="#faq">Сұрақтар</a>
           </nav>
-          <div className="ln-head__actions">
-            <Link to={cabinet} className="ln-login">{user ? "Кабинет" : "Кіру"}</Link>
-            <Link to={cabinet} className="ln-avatar" aria-label="Профиль">
-              <Icon name="person" size={18} />
-            </Link>
+          <div className="lp-top__acts">
+            <Link to={user ? "/home" : "/login"} className="lp-btn lp-btn--ghost sm">{user ? "Кабинет" : "Кіру"}</Link>
+            <Link to={join} className="lp-btn lp-btn--coral sm lp-hide-sm">Курсқа жазылу</Link>
+            <button type="button" className="lp-burger" aria-label="Мәзір" aria-expanded={menu} onClick={() => setMenu(!menu)}>
+              <Icon name={menu ? "close" : "apps"} size={22} />
+            </button>
           </div>
         </div>
       </header>
 
-      <main className="ln-main">
-        <div className="ln-marks" aria-hidden>
-          <span className="m2">Σ</span>
-          <span className="m3">√x</span>
-          <span className="m4">π</span>
-          <span className="m5">sin(x)</span>
-        </div>
+      <main>
+        <section className="lp-hero">
+          <div className="lp-wrap lp-hero__grid">
+            <div className="lp-hero__text" data-reveal>
+              <span className="lp-pill"><i />ҰБТ 2026 · математика</span>
+              <h1>
+                ҰБТ математикасынан <span className="lp-grad">50 баллға</span> бірге жетеміз
+              </h1>
+              <p>Нөлден бастап 50 балға дейін: түсінікті видеосабақтар, әр тақырыптан кейін тест және жеке өсім аналитикасы.</p>
+              <div className="lp-hero__cta">
+                <Link to={join} className="lp-btn lp-btn--teal">
+                  Курсқа жазылу<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span>
+                </Link>
+                <a href="#program" className="lp-btn lp-btn--ghost"><Icon name="menu_book" size={18} />Бағдарламаны көру</a>
+              </div>
+            </div>
+            <div data-reveal className="lp-reveal-late">
+              <HeroTry cta={join} />
+            </div>
+          </div>
 
-        <section className="ln-hero">
-          <div className="ln-hero__left">
-            <h1>
-              ҰБТ Математикасынан <em>50</em>
-              {" "}<br />
-              <em>баллға</em> бірге жетеміз!
-            </h1>
-            <p>
-              Нөлден бастап 50 балға дейін: түсінікті видеосабақтар, апта
-              {" "}<br />
-              сайынғы сынақ тесттер және интерактивті жеке өсім
-              {" "}<br />
-              аналитикасы.
+          <div className="lp-wrap">
+            <div className="lp-stats" data-reveal>
+              {[
+                { icon: "group", v: "1 500+", l: "оқушы дайындалды" },
+                { icon: "verified", v: "46.8 / 50", l: "түлектердің орташа балы" },
+                { icon: "school", v: "94%", l: "грантқа түсті" },
+              ].map((s) => (
+                <div key={s.l}>
+                  <span className="lp-tile"><Icon name={s.icon} size={20} /></span>
+                  <p><b>{s.v}</b><small>{s.l}</small></p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-sec" id="why">
+          <div className="lp-wrap">
+            <Head pill="Неге MATH ASYL" sub="Видео, тест және талдау бір жүйеде: не білетініңді және нені қайталау керегін нақты көресің.">
+              Бұл жай видео емес, бұл <span className="lp-grad">жүйелі дайындық</span>
+            </Head>
+            <div className="lp-cards4">
+              {why.map((w, i) => (
+                <article key={w.title} className="lp-card" data-reveal style={{ transitionDelay: `${i * 70}ms` }}>
+                  <span className="lp-tile"><Icon name={w.icon} size={22} /></span>
+                  <h3>{w.title}</h3>
+                  <p>{w.text}</p>
+                </article>
+              ))}
+            </div>
+            <p className="lp-note" data-reveal>
+              <Icon name="lightbulb" size={20} />
+              Әр бөлімнен кейінгі тест келесі тақырыпты ашады: білімде бос орын қалмайды.
             </p>
-            <div className="ln-cta">
-              <Link to="/register" className="ln-btn ln-btn--blue">
-                Курсқа жазылу <Icon name="arrow_forward" size={13} />
-              </Link>
-              <a href="#program" className="ln-btn ln-btn--soft">Бағдарламаны көру</a>
-            </div>
-          </div>
-          <HeroTry cta={user ? "/home" : "/register"} />
-          <i className="ln-blob ln-blob--a" />
-          <i className="ln-blob ln-blob--b" />
-        </section>
-
-        <section className="ln-stats">
-          {stats.map((s) => (
-            <article key={s.title} className="ln-card">
-              <span className="ln-ico"><Icon name={s.icon} size={24} /></span>
-              <h3>{s.title}</h3>
-              <p>{s.text}</p>
-            </article>
-          ))}
-        </section>
-
-        <section className="ln-sec">
-          <Title badge="Оқу форматы" title="Курс қалай өтеді?" sub="ҰБТ-да максималды балл жинауға арналған 4 қарапайым әрі тиімді қадам" />
-          <div className="ln-steps">
-            {steps.map((s) => (
-              <article key={s.n} className="ln-card">
-                <b className={s.accent ? "accent" : ""}>{s.n}</b>
-                <h4>{s.title}</h4>
-                <p>{s.text}</p>
-                <span>0{s.n}</span>
-              </article>
-            ))}
           </div>
         </section>
 
-        <section className="ln-sec ln-sec--tint" id="program">
-          <Title left badge="11 кезең" title="Курс бағдарламасы" sub="Ұлттық бірыңғай тестілеу талаптарына толық сәйкес келетін қадамдық оқу жоспары" />
-          <div className="ln-mods">
-            {modules.map((m, i) => (
-              <article key={m.id} className="ln-card">
-                <div>
-                  <h3>{m.id}. {m.title}</h3>
-                  <p>{m.text}</p>
-                </div>
-                <small className={i < 2 ? "hot" : ""}>
-                  <Icon name={chapterIcons[i]} size={16} />
-                  {m.meta}
-                </small>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="ln-sec">
-          <Title badge="Платформа артықшылығы" title="Интерактивті жеке кабинет" sub={"Оқу процесін, өсім графигін және әлсіз тұстарыңызды нақты алгоритммен\nбақылаңыз"} />
-          <div className="ln-mock">
-            <header>
-              <div className="ln-mock__who">
-                <span className="ln-mock__ava">АҚ</span>
-                <div>
-                  <strong>Айсұлтан Қайратұлы <Icon name="verified" size={18} color="#1e6fff" /></strong>
-                  <small>Мақсат: МУИТ / Назарбаев Университеті гранты</small>
-                </div>
-              </div>
-              <span className="ln-streak"><Icon name="local_fire_department" size={18} />14 күн үзіліссіз оқу</span>
-            </header>
-            <div className="ln-mock__grid">
-              <div className="ln-mock__left">
-                <div className="ln-chart">
-                  <div className="ln-chart__top">
-                    <strong>Сынақ тесттер динамикасы</strong>
-                    <em>+16 балл</em>
-                  </div>
-                  <p>Соңғы 5 аптадағы ресми балл өсімі:</p>
-                  <div className="ln-bars">
-                    {bars.map((b) => (
-                      <div key={b.w} className={b.now ? "now" : b.dim ? "dim" : ""}>
-                        <b>{b.v}</b>
-                        <i />
-                        <span>{b.w}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="ln-chart__path">32 → 37 → 41 → 45 → <b>48 балл</b></p>
-                </div>
-                <div className="ln-sum">
-                  <Icon name="donut_large" size={26} color="#00236f" />
-                  <div>
-                    <strong>Жалпы курс бағдарламасы</strong>
-                    <span>68% толық меңгерілді</span>
-                  </div>
-                  <em>68%</em>
-                </div>
-              </div>
-              <div className="ln-mock__right">
-                <div className="ln-weak">
-                  <h5><Icon name="warning" size={20} />Әлсіз тақырыптар анықталды</h5>
-                  <p>AI жүйесі соңғы сынақ нәтижесі бойынша{" "}<br />2 тақырыпты бекітуді ұсынады:</p>
-                  {[
-                    ["Тригонометриялық теңдеулер", 62],
-                    ["Стереометрия теоремалары", 55],
-                  ].map(([t, v]) => (
-                    <div key={t} className="ln-weak__item">
-                      <div><span>{t}</span><b>{v}%</b></div>
-                      <i><s style={{ width: `${v}%` }} /></i>
+        <section className="lp-sec" id="program">
+          <div className="lp-wrap">
+            <div className="lp-dark" data-reveal>
+              <Head dark pill="11 бөлім" sub="Ұлттық бірыңғай тестілеу талаптарына толық сәйкес келетін қадамдық оқу жоспары.">
+                Курс <span className="lp-grad lp-grad--light">бағдарламасы</span>
+              </Head>
+              <ol className="lp-chapters">
+                {modules.map((m) => (
+                  <li key={m.id}>
+                    <span className="lp-chapters__n">{m.id}</span>
+                    <div>
+                      <strong>{m.title}</strong>
+                      <small>{m.meta}</small>
                     </div>
-                  ))}
-                </div>
-                <div className="ln-rec">
-                  <h5><Icon name="psychology" size={22} color="#fd761a" />Жеке ұсыныс</h5>
-                  <p>Тек осы қателескен сұрақтар бойынша{" "}<br />арнайы 15 минуттық жаттықтыру жинағы{" "}<br />дайын.</p>
-                  <Link to={cabinet} className="ln-rec__btn">
-                    <span>Қатемен жұмыс тест{" "}<br />тапсырмасын бастау</span>
-                    <Icon name="play_arrow" size={18} />
-                  </Link>
-                </div>
+                  </li>
+                ))}
+              </ol>
+              <div className="lp-dark__cta">
+                <Link to={join} className="lp-btn lp-btn--coral">Курсқа жазылу<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
+                <span>Бірінші сабақ тіркелгеннен кейін тегін ашылады.</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="ln-sec ln-sec--tint4" id="teacher">
-          <Title badge="Тәлімгер" title="Сіздің басты тәлімгеріңіз" sub="Математиканы формула жаттамай, жүйемен түсінуді үйрететін кәсіби ұстаз" />
-          <div className="ln-teacher">
-            <div className="ln-teacher__photo">
-              <figure>
-                <img src="/assets/teacher.png" alt="Асылбек Серікұлы" />
-                <figcaption>ҰБТ сарапшысы • 8 жыл{" "}<br />тәжірибе</figcaption>
+        <section className="lp-sec">
+          <div className="lp-wrap">
+            <Head pill="Оқу форматы" sub="Тіркелгеннен ҰБТ-ға дейін: әр қадамда не істейтінің түсінікті.">
+              Курс <span className="lp-grad">қалай өтеді?</span>
+            </Head>
+            <div className="lp-cards4">
+              {steps.map((s, i) => (
+                <article key={s.title} className="lp-card lp-step" data-reveal style={{ transitionDelay: `${i * 70}ms` }}>
+                  <span className={`lp-tile lp-tile--g${i}`}><Icon name={s.icon} size={22} /></span>
+                  <span className="lp-step__n" aria-hidden>{i + 1}</span>
+                  <h3>{s.title}</h3>
+                  <p>{s.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-sec" id="teacher">
+          <div className="lp-wrap">
+            <div className="lp-dark lp-teacher" data-reveal>
+              <figure className="lp-teacher__photo">
+                <img src="/assets/teacher.png" alt="Асылбек Серікұлы" loading="lazy" />
+                <span className="lp-float lp-float--b"><i />ҰБТ сарапшысы</span>
+                <span className="lp-float lp-float--c"><Icon name="verified" size={16} />8 жыл тәжірибе</span>
               </figure>
-            </div>
-            <div className="ln-teacher__bio">
-              <h3>Асылбек Серікұлы</h3>
-              <p className="role">MATH ASYL жетекші оқытушысы &amp; математик</p>
-              <p>
-                Назарбаев Университетінің түлегі. Күрделі математикалық абстрактілі ұғымдарды визуалды әдіспен және өмірлік мысалдармен түсіндірудің авторлық жүйесін жасақтаған. Оның әдістемесімен 1,500-ден астам оқушы республикалық грант иегері атанды.
-              </p>
-              <ul>
-                <li><b>1,500+</b><span>Оқушы дайындады</span></li>
-                <li><b>46.8 / 50</b><span>Орташа балл</span></li>
-                <li><b className="blue">94%</b><span>Грантқа түсті</span></li>
-              </ul>
-              <small><Icon name="verified" size={16} color="#004942" />ҚР Білім беру ісінің үздік тәлімгері сертификаты</small>
-            </div>
-          </div>
-        </section>
-
-        <section className="ln-price-sec" id="price">
-          <div className="ln-price">
-            <header>
-              <div>
-                <span className="ln-price__badge">MATH ASYL — ең тиімді таңдау</span>
-                <small>Шектеулі орын: 45 қалды</small>
-              </div>
-              <span className="ln-price__guar"><Icon name="verified" size={18} />Толық сүйемелдеу кепілдігі</span>
-            </header>
-            <div className="ln-price__body">
-              <div className="ln-price__info">
-                <h3>6 айлық толық кешенді курс</h3>
-                <p>MATH ASYL әдістемесімен нөлден бастап 50 балға дейінгі толық{" "}<br />сүйемелдеу</p>
-                <ul>
-                  {perks.map((p) => (
-                    <li key={p}><Icon name="check_circle" size={20} />{p}</li>
-                  ))}
+              <div className="lp-teacher__text">
+                <span className="lp-pill dark"><i />Тәлімгер</span>
+                <h2>Асылбек <span className="lp-grad lp-grad--light">Серікұлы</span></h2>
+                <p>Назарбаев Университетінің түлегі. Күрделі математикалық ұғымдарды визуалды әдіспен және өмірлік мысалдармен түсіндірудің авторлық жүйесін жасаған.</p>
+                <ul className="lp-teacher__stats">
+                  <li><b>1 500+</b><small>оқушы дайындады</small></li>
+                  <li><b>46.8</b><small>орташа балл</small></li>
+                  <li><b>94%</b><small>грантқа түсті</small></li>
                 </ul>
+                <Link to={join} className="lp-btn lp-btn--coral">Сабақты бастау<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
               </div>
-              <aside className="ln-price__box">
-                <small>Бағасы</small>
-                <div className="ln-price__nums">
-                  <strong>9 990 ₸</strong>
-                  <s>19 900 ₸</s>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-sec" id="price">
+          <div className="lp-wrap">
+            <Head pill="Бағасы" sub="Бір реттік төлем. Kaspi Red арқылы бөліп төлеуге болады.">
+              6 айлық <span className="lp-grad">толық курс</span>
+            </Head>
+            <div className="lp-price" data-reveal>
+              <ul className="lp-price__list">
+                {perks.map((p) => (
+                  <li key={p}><span className="lp-check"><Icon name="check" size={14} /></span>{p}</li>
+                ))}
+              </ul>
+              <div className="lp-price__box">
+                <span className="lp-price__off">−50% жеңілдік</span>
+                <p className="lp-price__old">19 900 ₸</p>
+                <p className="lp-price__now">9 990 ₸</p>
+                <p className="lp-price__hint">немесе Kaspi Red арқылы 3 айға 3 330 ₸-ден</p>
+                <Link to={join} className="lp-btn lp-btn--teal wide"><Icon name="qr_code_scanner" size={20} />Kaspi арқылы төлеу</Link>
+                <small><Icon name="lock" size={14} />Төлем расталғаннан кейін курс бірден ашылады</small>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="lp-sec" id="faq">
+          <div className="lp-wrap lp-narrow">
+            <Head pill="Сұрақтар" sub="Оқушылар мен ата-аналар жиі сұрайтын сұрақтарға жауаптар.">
+              Жиі қойылатын <span className="lp-grad">сұрақтар</span>
+            </Head>
+            <div className="lp-faq">
+              {faqs.map((f, i) => (
+                <div key={f.q} className={open === i ? "lp-faq__item open" : "lp-faq__item"} data-reveal>
+                  <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
+                    <span>{f.q}</span>
+                    <span className="lp-faq__chev"><Icon name="expand_more" size={20} /></span>
+                  </button>
+                  {open === i && <p>{f.a}</p>}
                 </div>
-                <span className="ln-price__off">-50% жеңілдік</span>
-                <p>Бір реттік төлем немесе <b>Kaspi Red</b>{" "}<br />арқылы 3 айға 3 330 ₸-ден бөліп{" "}<br />төлеу</p>
-                <Link to="/register" className="ln-price__pay"><Icon name="qr_code_scanner" size={24} />Kaspi QR арқылы төлеу</Link>
-                <span className="ln-price__safe"><Icon name="lock" size={14} />100% қауіпсіз төлем • Чек дереу{" "}<br />поштаңызға жіберіледі</span>
-              </aside>
-            </div>
-          </div>
-        </section>
-
-        <section className="ln-sec" id="faq">
-          <Title badge="Анықтама" title="Жиі қойылатын сұрақтар" sub="Оқушылар мен ата-аналар тарапынан жиі қойылатын сұрақтарға жауаптар" />
-          <div className="ln-faq">
-            {faqs.map((f, i) => (
-              <button key={f.q} type="button" className={open === i ? "open" : ""} aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
-                <span>
-                  <strong>{f.q}</strong>
-                  <Icon name="expand_more" size={24} />
-                </span>
-                {open === i && <p>{f.a}</p>}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="ln-final-sec">
-          <div className="ln-final">
-            <i className="ln-final__blob" />
-            <span className="ln-final__mark" aria-hidden>50</span>
-            <div>
-              <h2>MATH ASYL-мен ҰБТ-ға{" "}<br />дайындықты баста!</h2>
-              <p>Мемлекеттік грант иегері болу мүмкіндігін жіберіп алмаңыз.{" "}<br />Орындар саны шектеулі.</p>
-            </div>
-            <div className="ln-cta">
-              <Link to="/register" className="ln-btn ln-btn--blue ln-btn--glow">
-                Курсқа жазылу <Icon name="arrow_forward" size={13} />
-              </Link>
-              <a className="ln-btn ln-btn--glass" href="https://wa.me/77771234567" target="_blank" rel="noreferrer">
-                <Icon name="chat" size={20} />WhatsApp-та сұрау
-              </a>
+              ))}
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="ln-foot">
-        <div className="ln-foot__row">
-          <div>
+      <footer className="lp-wrap lp-foot-wrap">
+        <div className="lp-foot" data-reveal>
+          <div className="lp-foot__brand">
             <Brand />
-            <p>ҰБТ математикасына сенімді дайындық курсы</p>
-          </div>
-          <div className="ln-foot__right">
-            <a href="tel:+77771234567"><Icon name="call" size={18} />+7 (777) 123-45-67</a>
-            <div>
-              <a href="https://wa.me/77771234567" aria-label="WhatsApp"><Icon name="chat" size={20} /></a>
-              <a href="https://t.me/" aria-label="Telegram"><Icon name="send" size={19} /></a>
-              <a href="https://instagram.com/" aria-label="Instagram"><Icon name="photo_camera" size={20} /></a>
+            <p>ҰБТ математикасына онлайн дайындық курсы: видеосабақтар, тесттер және жеке кабинет.</p>
+            <div className="lp-foot__social">
+              <a href={WHATSAPP} target="_blank" rel="noreferrer" aria-label="WhatsApp"><Icon name="chat" size={18} /></a>
+              <a href="https://t.me/" target="_blank" rel="noreferrer" aria-label="Telegram"><Icon name="send" size={18} /></a>
+              <a href="https://instagram.com/" target="_blank" rel="noreferrer" aria-label="Instagram"><Icon name="photo_camera" size={18} /></a>
             </div>
           </div>
+          <nav className="lp-foot__menu" aria-label="Мәзір">
+            <small>Мәзір</small>
+            <a href="#why">Неге біз</a>
+            <a href="#program">Бағдарлама</a>
+            <a href="#teacher">Мұғалім</a>
+            <a href="#price">Бағасы</a>
+            <Link to="/login">Кабинетке кіру</Link>
+          </nav>
+          <div className="lp-foot__contact">
+            <small>Байланыс</small>
+            <a href="tel:+77771234567" className="lp-foot__phone">{PHONE}</a>
+            <span>Күн сайын 9:00–20:00</span>
+            <Link to={join} className="lp-btn lp-btn--coral">Курсқа жазылу<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
+          </div>
+          <p className="lp-foot__copy">© 2026 MATH ASYL. Барлық құқықтар қорғалған.</p>
         </div>
-        <p className="ln-copy">© 2026 MATH ASYL. Барлық құқықтар қорғалған.</p>
       </footer>
+
+      <a className="lp-wa" href={WHATSAPP} target="_blank" rel="noreferrer">
+        <span>Бізге жазыңыз</span>
+        <i><Icon name="chat" size={24} /></i>
+      </a>
     </div>
   );
 }
