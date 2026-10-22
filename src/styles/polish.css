@@ -169,3 +169,30 @@ html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 
 /* Left-aligned section titles share the 1200px column with their content on wide screens. */
 .ln-sec--tint > .ln-title--left { max-width: 1200px; }
+
+/* ── Hero on graph paper: the squared school notebook every ҰБТ student solves in ── */
+.ln-hero::before {
+  content: "";
+  position: absolute;
+  top: -64px;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+  background-color: #fcfcff;
+  background-image:
+    linear-gradient(90deg, transparent calc(100% - 132px), rgba(229, 72, 77, 0.28) calc(100% - 132px), rgba(229, 72, 77, 0.28) calc(100% - 130px), transparent calc(100% - 130px)),
+    linear-gradient(rgba(30, 111, 255, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 111, 255, 0.13) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px, 22px 22px;
+  background-position: 0 0, center -1px, center 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
+}
+.ln-hero > * { position: relative; z-index: 1; }
+.ln-hero > .ln-blob { position: absolute; z-index: 0; }
+@media (max-width: 640px) {
+  .ln-hero::before { background-image: linear-gradient(rgba(30, 111, 255, 0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(30, 111, 255, 0.13) 1px, transparent 1px); background-size: 20px 20px, 20px 20px; background-position: center -1px, center 0; }
+}

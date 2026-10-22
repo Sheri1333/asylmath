@@ -152,7 +152,6 @@ export function LandingPage() {
 
       <main className="ln-main">
         <div className="ln-marks" aria-hidden>
-          <span className="m1">∫</span>
           <span className="m2">Σ</span>
           <span className="m3">√x</span>
           <span className="m4">π</span>
