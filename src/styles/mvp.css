@@ -215,3 +215,22 @@ a.prog__row:hover { background: var(--lav); }
 .prog__item.soon .prog__n { background: var(--soft2); color: var(--gray); }
 .cab-map__step.soon > span { background: var(--soft2); color: var(--gray); }
 .cab-map__step.open > span { background: var(--soft); color: var(--navy); }
+
+/* ── YouTube: cover first, real player on click ── */
+.vid--facade { padding: 0; border: 0; cursor: pointer; overflow: hidden; display: block; width: 100%; color: #fff; }
+.vid--facade img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease, filter 0.3s; }
+.vid--facade::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 26, 82, 0) 40%, rgba(0, 26, 82, 0.75) 100%); }
+.vid--facade:hover img { transform: scale(1.03); filter: brightness(0.92); }
+.vid__play { position: absolute; left: 50%; top: 50%; z-index: 1; width: 76px; height: 76px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--blue, #1e6fff); display: grid; place-items: center; box-shadow: 0 0 0 10px rgba(30, 111, 255, 0.25), 0 18px 40px -12px rgba(0, 26, 82, 0.6); transition: transform 0.2s; }
+.vid--facade:hover .vid__play { transform: translate(-50%, -50%) scale(1.06); }
+.vid__title { position: absolute; left: 18px; right: 18px; bottom: 14px; z-index: 1; text-align: left; font: 700 15px/1.35 var(--text); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4); }
+.lm-player .vid__play { width: 58px; height: 58px; box-shadow: 0 0 0 7px rgba(30, 111, 255, 0.25); }
+.lm-player .vid__title { font-size: 13px; }
+
+.ced-video { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 14px; background: var(--soft); }
+.ced-video img { width: 136px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
+.ced-video > span { display: flex; flex-direction: column; gap: 3px; }
+.ced-video b { font: 700 13px/18px var(--text); color: var(--teal); }
+.ced-video small { font: 400 12px/17px var(--text); color: var(--muted); }
+.ced-video a { font: 600 12px/17px var(--text); color: var(--teal); text-decoration: underline; }
+@media (max-width: 640px) { .ced-video { flex-direction: column; } .ced-video img { width: 100%; } }

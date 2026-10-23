@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import { fmtSize, Markdown, parseVideo } from "../lib/course";
+import { fmtSize, Markdown, normalizeVideoUrl, parseVideo } from "../lib/course";
 import type { EditCourse, EditLesson, EditQuestion, EditSection, QuestionLevel } from "../types/course";
 
 const uid = () => crypto.randomUUID();
@@ -444,17 +444,37 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
         <label className="wide">Название урока<input value={lesson.title} onChange={(e) => onChange({ title: e.target.value })} /></label>
         <label className="wide">Кратко (1–2 предложения под заголовком)<input value={lesson.summary} onChange={(e) => onChange({ summary: e.target.value })} /></label>
         <label className="wide">
-          Видео: ссылка YouTube, Vimeo, Kinescope или .mp4
-          <input value={lesson.videoUrl ?? ""} onChange={(e) => onChange({ videoUrl: e.target.value })} placeholder="https://youtu.be/…" />
-          <span className={video ? (video.kind === "link" ? "ced-hint warn" : "ced-hint ok") : "ced-hint"}>
-            {!video
-              ? "Без видео ученик увидит только текст урока."
-              : video.kind === "iframe"
-                ? "Видео встроится в плеер на странице урока."
-                : video.kind === "file"
-                  ? "Файл откроется во встроенном плеере."
-                  : "Ссылка не распознана как видео: ученик увидит кнопку «открыть видео»."}
-          </span>
+          Видео: ссылка YouTube (или Vimeo, Kinescope, .mp4)
+          <input
+            value={lesson.videoUrl ?? ""}
+            onChange={(e) => onChange({ videoUrl: e.target.value })}
+            onBlur={(e) => {
+              const clean = normalizeVideoUrl(e.target.value);
+              if (clean !== (lesson.videoUrl ?? "")) onChange({ videoUrl: clean });
+            }}
+            placeholder="https://www.youtube.com/watch?v=… или https://youtu.be/…"
+          />
+          {video?.kind === "youtube" ? (
+            <span className="ced-video">
+              <img src={video.thumb} alt="" />
+              <span>
+                <b>YouTube-видео распознано</b>
+                <small>ID {video.id}{video.start ? `, старт с ${Math.floor(video.start / 60)}:${String(video.start % 60).padStart(2, "0")}` : ""}</small>
+                <small>Ученик увидит обложку и кнопку воспроизведения прямо в уроке. Видео должно быть «Доступ по ссылке» или «Открытый» и с разрешённым встраиванием.</small>
+                <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer">Открыть на YouTube</a>
+              </span>
+            </span>
+          ) : (
+            <span className={video ? (video.kind === "link" ? "ced-hint warn" : "ced-hint ok") : "ced-hint"}>
+              {!video
+                ? "Вставьте ссылку на YouTube в любом виде: watch, youtu.be, shorts, live или код встраивания <iframe>."
+                : video.kind === "iframe"
+                  ? `Видео ${video.provider} встроится в плеер урока.`
+                  : video.kind === "file"
+                    ? "Файл откроется во встроенном плеере."
+                    : "Ссылка не распознана как видео: проверьте, что это ссылка на конкретное видео YouTube, а не на канал или плейлист."}
+            </span>
+          )}
         </label>
         <label>Длительность, мин<input type="number" min={0} max={600} value={lesson.durationMinutes} onChange={(e) => onChange({ durationMinutes: Number(e.target.value) || 0 })} /></label>
         <label className="adm-check"><input type="checkbox" checked={Boolean(lesson.isPreview)} onChange={(e) => onChange({ isPreview: e.target.checked })} />Бесплатный пробный урок (виден без оплаты)</label>

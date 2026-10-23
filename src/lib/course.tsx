@@ -63,48 +63,10 @@ export function fmtMoney(n: number | null): string {
   return n ? `${n.toLocaleString("ru-RU").replace(/,/g, " ")} ₸` : "Тегін";
 }
 
-// ── Video ──
+// ── Video: see ./video ──
 
-export type Video = { kind: "iframe"; src: string } | { kind: "file"; src: string } | { kind: "link"; src: string };
-
-export function parseVideo(url: string | null | undefined): Video | null {
-  if (!url) return null;
-  const u = url.trim();
-  const yt = u.match(/(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/);
-  if (yt) return { kind: "iframe", src: `https://www.youtube-nocookie.com/embed/${yt[1]}?rel=0` };
-  const vimeo = u.match(/vimeo\.com\/(?:video\/)?(\d+)/);
-  if (vimeo) return { kind: "iframe", src: `https://player.vimeo.com/video/${vimeo[1]}` };
-  if (/kinescope\.io\/(?:embed\/)?[\w-]+/.test(u)) return { kind: "iframe", src: u.replace(/kinescope\.io\/(?!embed)/, "kinescope.io/embed/") };
-  if (/\.(mp4|webm|m3u8|mov)(\?|$)/i.test(u) || u.startsWith("/api/files/")) return { kind: "file", src: u };
-  return { kind: "link", src: u };
-}
-
-export function VideoFrame({ url, title }: { url: string | null; title: string }) {
-  const v = parseVideo(url);
-  if (!v)
-    return (
-      <div className="vid vid--empty">
-        <span>Бұл сабақтың видеосы жақында қосылады. Әзірге төмендегі конспектті оқыңыз.</span>
-      </div>
-    );
-  if (v.kind === "iframe")
-    return (
-      <div className="vid">
-        <iframe src={v.src} title={title} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen loading="lazy" />
-      </div>
-    );
-  if (v.kind === "file")
-    return (
-      <div className="vid">
-        <video src={v.src} controls preload="metadata" playsInline />
-      </div>
-    );
-  return (
-    <div className="vid vid--empty">
-      <a href={v.src} target="_blank" rel="noreferrer">Видеоны жаңа бетте ашу</a>
-    </div>
-  );
-}
+export { parseVideo, VideoFrame, normalizeVideoUrl } from "./video";
+export type { Video } from "./video";
 
 // ── Lesson text: a small, safe Markdown subset ──
 
