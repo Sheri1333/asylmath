@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { courses, enrollments, toObjectId, type CourseDoc, type EnrollmentDoc } from "../db.js";
+import { courses, enrollments, toObjectId, type CourseDoc, type EnrollmentDoc, type QuizDoc, type QuizResultDoc } from "../db.js";
 import { optionalAuth, authRequired, type AuthedRequest } from "../auth.js";
 import {
   courseOutline,
   courseSections,
+  emptyQuiz,
   enrollmentView,
   flatLessons,
   hasAccess,
@@ -125,6 +126,66 @@ function quizContext(row: CourseDoc, sectionId: string) {
   return { sections, index, section: index === -1 ? null : sections[index] };
 }
 
+function grade(quiz: QuizDoc, picksIn: unknown) {
+  const picks = quiz.questions.map((_, i) => {
+    const v = Array.isArray(picksIn) ? Number(picksIn[i]) : -1;
+    return Number.isInteger(v) ? v : -1;
+  });
+  const total = quiz.questions.length;
+  const score = quiz.questions.filter((q, i) => picks[i] === q.answer).length;
+  const passed = total > 0 && (score / total) * 100 >= quiz.passPercent;
+  return { picks, total, score, passed };
+}
+
+function resultView(quiz: QuizDoc, result: QuizResultDoc | undefined) {
+  if (!result) return null;
+  return {
+    best: result.best,
+    last: result.last,
+    total: result.total,
+    passed: result.passed,
+    attempts: result.attempts,
+    review: quiz.questions.map((q, i) => ({
+      id: q.id,
+      pick: result.lastPicks?.[i] ?? -1,
+      answer: q.answer,
+      explanation: q.explanation,
+    })),
+  };
+}
+
+async function saveAttempt(enr: EnrollmentDoc | null, key: string, graded: ReturnType<typeof grade>) {
+  if (!enr) return;
+  const prev = enr.quizResults?.[key];
+  await enrollments().updateOne(
+    { _id: enr._id },
+    {
+      $set: {
+        [`quizResults.${key}`]: {
+          best: Math.max(prev?.best ?? 0, graded.score),
+          last: graded.score,
+          total: graded.total,
+          passed: Boolean(prev?.passed) || graded.passed,
+          attempts: (prev?.attempts ?? 0) + 1,
+          lastPicks: graded.picks,
+          updatedAt: new Date(),
+        },
+        lastAccessedAt: new Date(),
+      },
+    },
+  );
+}
+
+function lessonOpen(
+  row: CourseDoc,
+  sections: ReturnType<typeof courseSections>,
+  lesson: { sectionIndex: number; isPreview?: boolean },
+  enr: EnrollmentDoc | null,
+  isAdmin: boolean,
+) {
+  return (hasAccess(row, enr, isAdmin) && sectionOpen(sections, lesson.sectionIndex, row, enr, isAdmin)) || Boolean(lesson.isPreview);
+}
+
 coursesRouter.get("/:key/sections/:sectionId/quiz", authRequired, async (req: AuthedRequest, res) => {
   const isAdmin = req.user!.role === "admin";
   const row = await findCourse(String(req.params.key), isAdmin);
@@ -146,27 +207,15 @@ coursesRouter.get("/:key/sections/:sectionId/quiz", authRequired, async (req: Au
     res.status(403).json({ error: "Алдымен алдыңғы бөлімнің тестін тапсырыңыз" });
     return;
   }
-  const result = enr?.quizResults?.[section.id];
   res.json({
     course: publicCourse(row),
+    scope: "section",
     section: { id: section.id, title: section.title, order: index + 1 },
+    lesson: null,
     nextSection: sections[index + 1] ? { id: sections[index + 1].id, title: sections[index + 1].title } : null,
+    nextLessonId: null,
     quiz: publicQuiz(section.quiz),
-    result: result
-      ? {
-          best: result.best,
-          last: result.last,
-          total: result.total,
-          passed: result.passed,
-          attempts: result.attempts,
-          review: section.quiz.questions.map((q, i) => ({
-            id: q.id,
-            pick: result.lastPicks[i] ?? -1,
-            answer: q.answer,
-            explanation: q.explanation,
-          })),
-        }
-      : null,
+    result: resultView(section.quiz, enr?.quizResults?.[section.id]),
   });
 });
 
@@ -187,41 +236,83 @@ coursesRouter.post("/:key/sections/:sectionId/quiz", authRequired, async (req: A
     res.status(403).json({ error: "Тест әлі ашылмаған" });
     return;
   }
-  const picksIn = (req.body as { picks?: unknown })?.picks;
-  const picks = section.quiz.questions.map((_, i) => {
-    const v = Array.isArray(picksIn) ? Number(picksIn[i]) : -1;
-    return Number.isInteger(v) ? v : -1;
-  });
-  const total = section.quiz.questions.length;
-  const score = section.quiz.questions.filter((q, i) => picks[i] === q.answer).length;
-  const passed = (score / total) * 100 >= section.quiz.passPercent;
-
-  if (enr) {
-    const prev = enr.quizResults?.[section.id];
-    await enrollments().updateOne(
-      { _id: enr._id },
-      {
-        $set: {
-          [`quizResults.${section.id}`]: {
-            best: Math.max(prev?.best ?? 0, score),
-            last: score,
-            total,
-            passed: Boolean(prev?.passed) || passed,
-            attempts: (prev?.attempts ?? 0) + 1,
-            lastPicks: picks,
-            updatedAt: new Date(),
-          },
-          lastAccessedAt: new Date(),
-        },
-      },
-    );
-  }
-
+  const graded = grade(section.quiz, (req.body as { picks?: unknown })?.picks);
+  await saveAttempt(enr, section.id, graded);
   res.json({
-    score,
-    total,
-    passed,
+    score: graded.score,
+    total: graded.total,
+    passed: graded.passed,
     passPercent: section.quiz.passPercent,
-    review: section.quiz.questions.map((q, i) => ({ id: q.id, pick: picks[i], answer: q.answer, explanation: q.explanation })),
+    review: section.quiz.questions.map((q, i) => ({ id: q.id, pick: graded.picks[i], answer: q.answer, explanation: q.explanation })),
+  });
+});
+
+coursesRouter.get("/:key/lessons/:lessonId/quiz", authRequired, async (req: AuthedRequest, res) => {
+  const isAdmin = req.user!.role === "admin";
+  const row = await findCourse(String(req.params.key), isAdmin);
+  if (!row) {
+    res.status(404).json({ error: "Курс табылмады" });
+    return;
+  }
+  const sections = courseSections(row);
+  const all = flatLessons(row);
+  const idx = all.findIndex((l) => l.id === String(req.params.lessonId));
+  const lesson = idx === -1 ? null : all[idx];
+  const quiz = lesson?.quiz ?? emptyQuiz();
+  if (!lesson || quiz.questions.length === 0) {
+    res.status(404).json({ error: "Бұл сабақта тест жоқ" });
+    return;
+  }
+  const enr = await myEnrollment(req, row._id);
+  if (!lessonOpen(row, sections, lesson, enr, isAdmin)) {
+    res.status(403).json({ error: "Тест сабақ ашылғаннан кейін көрінеді" });
+    return;
+  }
+  const next = all[idx + 1];
+  const nextOpen = next ? lessonOpen(row, sections, next, enr, isAdmin) : false;
+  const section = sections[lesson.sectionIndex];
+  res.json({
+    course: publicCourse(row),
+    scope: "lesson",
+    section: { id: section.id, title: section.title, order: lesson.sectionIndex + 1 },
+    lesson: { id: lesson.id, title: lesson.title },
+    nextSection: null,
+    nextLessonId: nextOpen ? next!.id : null,
+    quiz: publicQuiz(quiz),
+    result: resultView(quiz, enr?.quizResults?.[lesson.id]),
+  });
+});
+
+coursesRouter.post("/:key/lessons/:lessonId/quiz", authRequired, async (req: AuthedRequest, res) => {
+  const isAdmin = req.user!.role === "admin";
+  const row = await findCourse(String(req.params.key), isAdmin);
+  if (!row) {
+    res.status(404).json({ error: "Курс табылмады" });
+    return;
+  }
+  const sections = courseSections(row);
+  const lesson = flatLessons(row).find((l) => l.id === String(req.params.lessonId));
+  const quiz = lesson?.quiz ?? emptyQuiz();
+  if (!lesson || quiz.questions.length === 0) {
+    res.status(404).json({ error: "Бұл сабақта тест жоқ" });
+    return;
+  }
+  const enr = await myEnrollment(req, row._id);
+  if (!lessonOpen(row, sections, lesson, enr, isAdmin)) {
+    res.status(403).json({ error: "Тест әлі ашылмаған" });
+    return;
+  }
+  if (!isAdmin && !isActive(enr) && !lesson.isPreview) {
+    res.status(403).json({ error: "Тест әлі ашылмаған" });
+    return;
+  }
+  const graded = grade(quiz, (req.body as { picks?: unknown })?.picks);
+  await saveAttempt(enr, lesson.id, graded);
+  res.json({
+    score: graded.score,
+    total: graded.total,
+    passed: graded.passed,
+    passPercent: quiz.passPercent,
+    review: quiz.questions.map((q, i) => ({ id: q.id, pick: graded.picks[i], answer: q.answer, explanation: q.explanation })),
   });
 });

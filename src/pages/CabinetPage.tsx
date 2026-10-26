@@ -3,7 +3,7 @@ import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
 import { useAuth } from "../auth/AuthContext";
-import { nextLesson, nextQuiz, sectionDone, sectionEmpty, useMainCourse } from "../lib/course";
+import { MathText, nextLesson, quizStops, sectionDone, sectionEmpty, useMainCourse } from "../lib/course";
 
 /** Days until the main ҰБТ session (around 20 May). */
 function daysToUbt(): number {
@@ -31,19 +31,20 @@ export function CabinetPage() {
   const doneCount = lessons.filter((l) => l.completed).length;
   const progress = enrollment?.progressPercent ?? 0;
   const next = nextLesson(outline);
-  const quizNext = nextQuiz(outline);
-  const tested = outline.filter((s) => s.quiz?.result);
-  const passed = outline.filter((s) => s.quiz?.result?.passed).length;
-  const quizTotal = outline.filter((s) => s.quiz).length;
+  const stops = quizStops(outline);
+  const quizNext = stops.find((q) => !q.locked && !q.result?.passed) ?? null;
+  const tested = stops.filter((q) => q.result);
+  const passed = stops.filter((q) => q.result?.passed).length;
+  const quizTotal = stops.length;
   const weak = tested
-    .map((s) => ({ s, pct: Math.round((s.quiz!.result!.best / s.quiz!.result!.total) * 100) }))
-    .filter((w) => w.pct < (w.s.quiz!.passPercent ?? 70))
+    .map((q) => ({ q, pct: Math.round((q.result!.best / q.result!.total) * 100) }))
+    .filter((w) => w.pct < w.q.passPercent)
     .sort((a, b) => a.pct - b.pct)
     .slice(0, 3);
   const current = outline.find((s) => s.open && !sectionEmpty(s) && !sectionDone(s));
 
   // Chart: best score per tested section, as a percentage.
-  const pts = tested.map((s) => ({ label: `${s.order}-бөлім`, pct: Math.round((s.quiz!.result!.best / s.quiz!.result!.total) * 100) }));
+  const pts = tested.map((q) => ({ label: q.heading, pct: Math.round((q.result!.best / q.result!.total) * 100) }));
   const W = 576;
   const step = pts.length > 1 ? 480 / (pts.length - 1) : 0;
   const xy = pts.map((p, i) => [53 + (pts.length > 1 ? i * step : 240), 193 - (p.pct / 100) * 168] as const);
@@ -99,7 +100,7 @@ export function CabinetPage() {
                   <span className="cab-hero__tag"><i />{doneCount ? "Жалғастыру" : "Бастау"}</span>
                   <p className="cab-hero__sec">{next.section.order}-бөлім · {next.section.title}</p>
                   <h2>{next.lesson.title}</h2>
-                  {next.lesson.summary && <p className="cab-hero__text">{next.lesson.summary}</p>}
+                  {next.lesson.summary && <p className="cab-hero__text"><MathText text={next.lesson.summary} /></p>}
                   <div className="cab-hero__prog">
                     <div>
                       <span>Осы бөлімнің орындалуы</span>
@@ -112,10 +113,10 @@ export function CabinetPage() {
               ) : quizNext ? (
                 <>
                   <span className="cab-hero__tag"><i />Тест</span>
-                  <p className="cab-hero__sec">{quizNext.order}-бөлім · {quizNext.title}</p>
-                  <h2>Бөлімнің сабақтары өтілді</h2>
-                  <p className="cab-hero__text">Келесі бөлімді ашу үшін тақырыптық тестті тапсырыңыз.</p>
-                  <Link to={`/tests/${quizNext.id}`} className="cab-hero__cta"><Icon name="play_arrow" size={12} fill />Тестке өту</Link>
+                  <p className="cab-hero__sec">{quizNext.heading}</p>
+                  <h2>{quizNext.title}</h2>
+                  <p className="cab-hero__text">Келесі бөлімді ашу үшін тестті тапсырыңыз.</p>
+                  <Link to={quizNext.to} className="cab-hero__cta"><Icon name="play_arrow" size={12} fill />Тестке өту</Link>
                 </>
               ) : (
                 <>
@@ -136,7 +137,7 @@ export function CabinetPage() {
                     <p>Тақырыптық тесттердегі үздік нәтиже</p>
                   </div>
                 </div>
-                {quizNext && <Link to={`/tests/${quizNext.id}`}>Келесі тест <Icon name="arrow_forward" size={16} /></Link>}
+                {quizNext && <Link to={quizNext.to}>Келесі тест <Icon name="arrow_forward" size={16} /></Link>}
               </header>
               {pts.length === 0 ? (
                 <div className="acc__empty">
@@ -235,22 +236,22 @@ export function CabinetPage() {
                 <h4>Келесі тест</h4>
                 <Icon name="event_available" size={22} color="var(--brown)" />
               </header>
-              {quizNext && quizNext.quiz ? (
+              {quizNext ? (
                 <>
                   <div className="cab-test__box">
                     <div>
-                      <strong>{quizNext.order}-бөлім тесті</strong>
+                      <strong>{quizNext.heading}</strong>
                     </div>
                     <p>{quizNext.title}</p>
-                    <p>{quizNext.quiz.questionCount} сұрақ · өту шегі {quizNext.quiz.passPercent}%</p>
+                    <p>{quizNext.questionCount} сұрақ · өту шегі {quizNext.passPercent}%</p>
                   </div>
-                  {quizNext.quiz.timeLimitMinutes > 0 && (
+                  {quizNext.timeLimitMinutes > 0 && (
                     <div className="cab-test__count">
                       <Icon name="timer" size={20} color="var(--navy)" />
-                      <span>Уақыты: <b>{quizNext.quiz.timeLimitMinutes} минут</b></span>
+                      <span>Уақыты: <b>{quizNext.timeLimitMinutes} минут</b></span>
                     </div>
                   )}
-                  <Link to={`/tests/${quizNext.id}`} className="cab-test__btn on"><Icon name="play_arrow" size={16} />Тестті бастау</Link>
+                  <Link to={quizNext.to} className="cab-test__btn on"><Icon name="play_arrow" size={16} />Тестті бастау</Link>
                 </>
               ) : (
                 <div className="acc__empty">
@@ -273,11 +274,11 @@ export function CabinetPage() {
                   <p>{tested.length ? "Тапсырылған тесттердің бәрі шекке жетті." : "Тест тапсырғаннан кейін қайталау керек тақырыптар осында шығады."}</p>
                 </div>
               ) : (
-                weak.map(({ s, pct }) => (
-                  <div key={s.id} className="cab-weak__row">
-                    <div><span>{s.title}</span><b style={{ color: pct < 50 ? "var(--red)" : "var(--brown)" }}>{pct}%</b></div>
+                weak.map(({ q, pct }) => (
+                  <div key={q.id} className="cab-weak__row">
+                    <div><span>{q.title}</span><b style={{ color: pct < 50 ? "var(--red)" : "var(--brown)" }}>{pct}%</b></div>
                     <i><s style={{ width: `${pct}%`, background: pct < 50 ? "var(--red)" : "var(--brown)" }} /></i>
-                    <Link to={`/tests/${s.id}`}>Қайталау</Link>
+                    <Link to={q.to}>Қайталау</Link>
                   </div>
                 ))
               )}

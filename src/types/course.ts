@@ -33,6 +33,14 @@ export interface QuizResultSummary {
   attempts: number;
 }
 
+export interface QuizOutline {
+  questionCount: number;
+  passPercent: number;
+  timeLimitMinutes: number;
+  locked: boolean;
+  result: QuizResultSummary | null;
+}
+
 export interface OutlineLesson {
   id: string;
   title: string;
@@ -43,6 +51,7 @@ export interface OutlineLesson {
   materialCount: number;
   completed: boolean;
   locked: boolean;
+  quiz: QuizOutline | null;
 }
 
 export interface OutlineSection {
@@ -52,13 +61,7 @@ export interface OutlineSection {
   order: number;
   open: boolean;
   lessons: OutlineLesson[];
-  quiz: null | {
-    questionCount: number;
-    passPercent: number;
-    timeLimitMinutes: number;
-    locked: boolean;
-    result: QuizResultSummary | null;
-  };
+  quiz: QuizOutline | null;
 }
 
 export interface EnrollmentInfo {
@@ -113,8 +116,11 @@ export interface ReviewItem {
 
 export interface QuizView {
   course: CourseSummary;
+  scope?: "section" | "lesson";
   section: { id: string; title: string; order: number };
+  lesson?: { id: string; title: string } | null;
   nextSection: { id: string; title: string } | null;
+  nextLessonId?: string | null;
   quiz: {
     passPercent: number;
     timeLimitMinutes: number;
@@ -132,6 +138,12 @@ export interface QuizSubmitResult {
 }
 
 // ── Admin editing shapes (answers included) ──
+
+export interface EditQuiz {
+  passPercent: number;
+  timeLimitMinutes: number;
+  questions: EditQuestion[];
+}
 
 export interface EditQuestion {
   id?: string;
@@ -152,6 +164,7 @@ export interface EditLesson {
   durationMinutes: number;
   isPreview?: boolean;
   materials?: Material[];
+  quiz: EditQuiz;
 }
 
 export interface EditSection {
@@ -159,7 +172,7 @@ export interface EditSection {
   title: string;
   description: string;
   lessons: EditLesson[];
-  quiz: { passPercent: number; timeLimitMinutes: number; questions: EditQuestion[] };
+  quiz: EditQuiz;
 }
 
 export interface EditCourse {

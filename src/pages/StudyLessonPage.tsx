@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
-import { fmtSize, mainSlug, Markdown, nextLesson, useMainCourse, VideoFrame } from "../lib/course";
+import { fmtSize, mainSlug, Markdown, MathText, nextLesson, useMainCourse, VideoFrame } from "../lib/course";
 import type { LessonView, Material } from "../types/course";
 
 /** /lesson without an id: continue where the student stopped. */
@@ -69,6 +69,7 @@ export function StudyLessonPage() {
   const secDone = sec.lessons.filter((l) => l.completed).length;
   const secPct = sec.lessons.length ? Math.round((secDone / sec.lessons.length) * 100) : 0;
   const lastInSection = pos === sec.lessons.length;
+  const lessonQuiz = sec.lessons.find((l) => l.id === lesson.id)?.quiz ?? null;
   const quizOpen = sec.quiz && !sec.quiz.locked;
 
   async function markDone() {
@@ -93,11 +94,13 @@ export function StudyLessonPage() {
     navigate(to);
   }
 
-  const next = lastInSection && quizOpen
-    ? { to: `/tests/${section.id}`, label: "Тақырып тестіне өту" }
-    : navigation.nextLessonId
-      ? { to: `/lesson/${navigation.nextLessonId}`, label: "Келесі сабақ" }
-      : { to: "/course", label: "Курс бағдарламасы" };
+  const next = lessonQuiz && !lessonQuiz.result?.passed
+    ? { to: `/tests/lesson/${lesson.id}`, label: "Сабақ тестіне өту" }
+    : lastInSection && quizOpen
+      ? { to: `/tests/${section.id}`, label: "Тақырып тестіне өту" }
+      : navigation.nextLessonId
+        ? { to: `/lesson/${navigation.nextLessonId}`, label: "Келесі сабақ" }
+        : { to: "/course", label: "Курс бағдарламасы" };
 
   const list = (
     <article className="les-list">
@@ -119,7 +122,27 @@ export function StudyLessonPage() {
             </span>
           </>
         );
-        return l.locked ? <div key={l.id} className={cls}>{body}</div> : <Link key={l.id} to={`/lesson/${l.id}`} className={cls}>{body}</Link>;
+        return (
+          <Fragment key={l.id}>
+            {l.locked ? <div className={cls}>{body}</div> : <Link to={`/lesson/${l.id}`} className={cls}>{body}</Link>}
+            {l.quiz && (
+              l.quiz.locked ? (
+                <div className="les-item les-item--lock sub">
+                  <span className="les-item__ico"><Icon name="lock" size={16} /></span>
+                  <span className="les-item__body"><strong>Сабақ тесті</strong><small><Icon name="quiz" size={18} />{l.quiz.questionCount} сұрақ</small></span>
+                </div>
+              ) : (
+                <Link to={`/tests/lesson/${l.id}`} className={l.quiz.result?.passed ? "les-item sub" : "les-item sub todo"}>
+                  <span className="les-item__ico">{l.quiz.result?.passed ? <Icon name="check" size={18} /> : <Icon name="quiz" size={16} />}</span>
+                  <span className="les-item__body">
+                    <strong>Сабақ тесті</strong>
+                    <small><Icon name="quiz" size={18} />{l.quiz.result ? `Үздік нәтиже ${l.quiz.result.best} / ${l.quiz.result.total}` : `${l.quiz.questionCount} сұрақ`}</small>
+                  </span>
+                </Link>
+              )
+            )}
+          </Fragment>
+        );
       })}
       {sec.quiz && (
         sec.quiz.locked ? (
@@ -143,11 +166,26 @@ export function StudyLessonPage() {
   const files = <Files items={lesson.materials} />;
   const body = (
     <>
-      {lesson.summary && <p className="les-intro">{lesson.summary}</p>}
+      {lesson.summary && <p className="les-intro"><MathText text={lesson.summary} /></p>}
       {lesson.content ? (
         <article className="les-card les-md"><Markdown text={lesson.content} /></article>
       ) : (
-        <p className="adm-muted">Сабақтың мәтіні әлі қосылмаған.</p>
+        <p className="adm-muted">Сабақтың сипаттамасы әлі қосылмаған.</p>
+      )}
+      {lessonQuiz && !lessonQuiz.locked && (
+        <article className="les-quiz">
+          <div>
+            <strong>Сабақ тесті</strong>
+            <small>
+              {lessonQuiz.questionCount} сұрақ · өту шегі {lessonQuiz.passPercent}%
+              {lessonQuiz.result ? ` · үздік нәтиже ${lessonQuiz.result.best}/${lessonQuiz.result.total}` : ""}
+            </small>
+          </div>
+          <Link to={`/tests/lesson/${lesson.id}`} className="qz-next">
+            {lessonQuiz.result?.passed ? "Тестті қайталау" : "Тестті бастау"}
+            <Icon name="arrow_forward" size={16} />
+          </Link>
+        </article>
       )}
     </>
   );

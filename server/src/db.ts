@@ -57,6 +57,8 @@ export interface LessonDoc {
   /** Open to signed-in visitors without paid access. */
   isPreview?: boolean;
   materials?: MaterialDoc[];
+  /** Test that belongs to this lesson. No questions means the lesson has no test. */
+  quiz?: QuizDoc;
 }
 
 export type QuestionLevel = "easy" | "mid" | "hard";

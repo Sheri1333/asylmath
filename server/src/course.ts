@@ -25,7 +25,9 @@ export function courseSections(doc: CourseDoc): SectionDoc[] {
     .map((s) => ({
       ...s,
       quiz: s.quiz ?? emptyQuiz(),
-      lessons: [...(s.lessons ?? [])].sort((a, b) => a.order - b.order),
+      lessons: [...(s.lessons ?? [])]
+        .sort((a, b) => a.order - b.order)
+        .map((l) => ({ ...l, quiz: l.quiz ?? emptyQuiz() })),
     }));
 }
 
@@ -88,7 +90,13 @@ export function publicCourse(doc: CourseDoc) {
     paymentUrl: doc.paymentUrl ?? "",
     sectionCount: sections.length,
     lessonCount: lessons.length,
-    quizCount: sections.filter((s) => s.quiz.questions.length > 0).length,
+    quizCount: sections.reduce(
+      (n, s) =>
+        n +
+        (s.quiz.questions.length > 0 ? 1 : 0) +
+        s.lessons.filter((l) => (l.quiz?.questions.length ?? 0) > 0).length,
+      0,
+    ),
     durationMinutes: lessons.reduce((sum, l) => sum + (l.durationMinutes || 0), 0),
     createdAt: doc.createdAt.toISOString(),
     updatedAt: doc.updatedAt.toISOString(),
@@ -137,21 +145,24 @@ export function courseOutline(doc: CourseDoc, enr: EnrollmentDoc | null, isAdmin
         materialCount: l.materials?.length ?? 0,
         completed: done.has(l.id),
         locked: !(open || l.isPreview),
+        quiz: quizOutline(l.quiz ?? emptyQuiz(), !(open || l.isPreview), enr?.quizResults?.[l.id]),
       })),
-      quiz:
-        s.quiz.questions.length === 0
-          ? null
-          : {
-              questionCount: s.quiz.questions.length,
-              passPercent: s.quiz.passPercent,
-              timeLimitMinutes: s.quiz.timeLimitMinutes,
-              locked: !open,
-              result: result
-                ? { best: result.best, last: result.last, total: result.total, passed: result.passed, attempts: result.attempts }
-                : null,
-            },
+      quiz: quizOutline(s.quiz, !open, result),
     };
   });
+}
+
+function quizOutline(quiz: QuizDoc, locked: boolean, result: { best: number; last: number; total: number; passed: boolean; attempts: number } | undefined) {
+  if (quiz.questions.length === 0) return null;
+  return {
+    questionCount: quiz.questions.length,
+    passPercent: quiz.passPercent,
+    timeLimitMinutes: quiz.timeLimitMinutes,
+    locked,
+    result: result
+      ? { best: result.best, last: result.last, total: result.total, passed: result.passed, attempts: result.attempts }
+      : null,
+  };
 }
 
 /** Questions for taking a test: no answers, no explanations. */
@@ -202,6 +213,16 @@ function cleanLesson(l: unknown, order: number): LessonDoc {
     order,
     isPreview: Boolean(o.isPreview),
     materials: (Array.isArray(o.materials) ? o.materials : []).map(cleanMaterial).filter((x): x is MaterialDoc => x !== null),
+    quiz: cleanQuiz(o.quiz, `урок «${title}»`, 10),
+  };
+}
+
+function cleanQuiz(raw: unknown, label: string, defaultMinutes: number): QuizDoc {
+  const quiz = (raw ?? {}) as Record<string, unknown>;
+  return {
+    passPercent: num(quiz.passPercent, 70, 1, 100),
+    timeLimitMinutes: num(quiz.timeLimitMinutes, defaultMinutes, 0, 300),
+    questions: (Array.isArray(quiz.questions) ? quiz.questions : []).map((q, j) => cleanQuestion(q, j + 1, label)),
   };
 }
 
@@ -217,7 +238,7 @@ function cleanQuestion(q: unknown, n: number, section: string): QuestionDoc {
   return {
     id: id(o.id),
     prompt,
-    formula: str(o.formula, 500) || undefined,
+    formula: str(o.formula, 4000) || undefined,
     choices,
     answer,
     explanation: str(o.explanation, 4000),
@@ -231,18 +252,13 @@ export function cleanSections(input: unknown): SectionDoc[] {
     const o = (s ?? {}) as Record<string, unknown>;
     const title = str(o.title, 300);
     if (!title) throw new Error(`Раздел ${i + 1}: нужно название`);
-    const quiz = (o.quiz ?? {}) as Record<string, unknown>;
     return {
       id: id(o.id),
       title,
       description: str(o.description, 2000),
       order: i + 1,
       lessons: (Array.isArray(o.lessons) ? o.lessons : []).map((l, j) => cleanLesson(l, j + 1)),
-      quiz: {
-        passPercent: num(quiz.passPercent, 70, 1, 100),
-        timeLimitMinutes: num(quiz.timeLimitMinutes, 20, 0, 300),
-        questions: (Array.isArray(quiz.questions) ? quiz.questions : []).map((q, j) => cleanQuestion(q, j + 1, title)),
-      },
+      quiz: cleanQuiz(o.quiz, `«${title}»`, 20),
     };
   });
 }

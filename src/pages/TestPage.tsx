@@ -4,7 +4,7 @@ import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
-import { mainSlug, nextQuiz, useMainCourse } from "../lib/course";
+import { FormulaOrText, mainSlug, MathText, nextQuiz, useMainCourse } from "../lib/course";
 import type { QuizView, ReviewItem } from "../types/course";
 
 function fmt(sec: number) {
@@ -19,6 +19,11 @@ function mathify(text: string): ReactNode {
   return parts.map((p, i) => (i % 2 ? <em key={i}>{p}</em> : <Fragment key={i}>{p}</Fragment>));
 }
 
+function QText({ text }: { text: string }) {
+  if (text.includes("$") || text.includes("\\")) return <MathText text={text} />;
+  return <>{mathify(text)}</>;
+}
+
 const levelName = { easy: "Жеңіл", mid: "Орташа деңгей", hard: "Күрделі" } as const;
 const letters = "ABCDEFGH";
 
@@ -26,8 +31,8 @@ const letters = "ABCDEFGH";
 export function TestRedirect() {
   const { view, error, reload } = useMainCourse();
   if (view) {
-    const target = nextQuiz(view.outline) ?? view.outline.find((s) => s.quiz && !s.quiz.locked);
-    return <Navigate to={target ? `/tests/${target.id}` : "/course"} replace />;
+    const target = nextQuiz(view.outline);
+    return <Navigate to={target ? target.to : "/course"} replace />;
   }
   return (
     <Shell variant="study" flush streak={false}>
@@ -39,7 +44,8 @@ export function TestRedirect() {
 type Outcome = { score: number; total: number; passed: boolean; review: ReviewItem[] };
 
 export function TestPage() {
-  const { sectionId = "" } = useParams();
+  const { sectionId = "", lessonId = "" } = useParams();
+  const isLesson = Boolean(lessonId);
   const [data, setData] = useState<QuizView | null>(null);
   const [error, setError] = useState<{ message: string; status: number } | null>(null);
   const [mode, setMode] = useState<"quiz" | "result">("quiz");
@@ -54,7 +60,8 @@ export function TestPage() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const d = await api.quiz(await mainSlug(), sectionId);
+      const slug = await mainSlug();
+      const d = isLesson ? await api.lessonQuiz(slug, lessonId) : await api.quiz(slug, sectionId);
       setData(d);
       setPicks(d.quiz.questions.map(() => -1));
       setFlags([]);
@@ -71,7 +78,7 @@ export function TestPage() {
     } catch (e) {
       setError({ message: e instanceof Error ? e.message : "Қате", status: e instanceof ApiError ? e.status : 0 });
     }
-  }, [sectionId]);
+  }, [sectionId, lessonId, isLesson]);
 
   useEffect(() => {
     setData(null);
@@ -83,7 +90,8 @@ export function TestPage() {
     submitted.current = true;
     setSending(true);
     try {
-      const r = await api.submitQuiz(await mainSlug(), sectionId, picks);
+      const slug = await mainSlug();
+      const r = isLesson ? await api.submitLessonQuiz(slug, lessonId, picks) : await api.submitQuiz(slug, sectionId, picks);
       setOutcome(r);
       setMode("result");
       window.scrollTo(0, 0);
@@ -93,7 +101,7 @@ export function TestPage() {
     } finally {
       setSending(false);
     }
-  }, [data, picks, sectionId]);
+  }, [data, picks, sectionId, lessonId, isLesson]);
 
   const timed = Boolean(data?.quiz.timeLimitMinutes);
   useEffect(() => {
@@ -132,7 +140,8 @@ export function TestPage() {
     );
   }
 
-  const { section, quiz, nextSection } = data;
+  const { section, quiz, nextSection, lesson } = data;
+  const lessonMode = data.scope === "lesson" || Boolean(lesson);
   const qs = quiz.questions;
   const q = qs[index];
   const answered = picks.filter((p) => p >= 0).length;
@@ -167,13 +176,17 @@ export function TestPage() {
           <h2>{outcome.passed ? "Тест сәтті тапсырылды!" : "Шекке әлі жетпеді"}</h2>
           <p>
             {outcome.passed
-              ? nextSection
-                ? `«${nextSection.title}» бөлімі ашылды.`
-                : "Курстың соңғы тестін тапсырдыңыз."
+              ? lessonMode
+                ? "Сабақ тесті сәтті тапсырылды."
+                : nextSection
+                  ? `«${nextSection.title}» бөлімі ашылды.`
+                  : "Курстың соңғы тестін тапсырдыңыз."
               : `Өту үшін кемінде ${need} дұрыс жауап керек. Төмендегі қателерді қарап, қайта тапсырыңыз.`}
           </p>
           <div className="qz-res__acts">
-            {outcome.passed && nextSection ? (
+            {outcome.passed && lessonMode && data.nextLessonId ? (
+              <Link to={`/lesson/${data.nextLessonId}`} className="qz-next">Келесі сабаққа өту<Icon name="arrow_forward" size={16} /></Link>
+            ) : outcome.passed && nextSection ? (
               <Link to="/lesson" className="qz-next">Келесі бөлімге өту<Icon name="arrow_forward" size={16} /></Link>
             ) : (
               <button type="button" className="qz-next" onClick={restart}>Қайта тапсыру<Icon name="arrow_forward" size={16} /></button>
@@ -193,12 +206,12 @@ export function TestPage() {
               <li key={item.id} className={ok ? "ok" : "bad"}>
                 <span className="qz-review__n">{ok ? <Icon name="check" size={16} /> : <Icon name="close" size={16} />}</span>
                 <div>
-                  <p>{i + 1}. {item.prompt}</p>
+                  <p>{i + 1}. <QText text={item.prompt} /></p>
                   <small>
-                    Сіздің жауабыңыз: <b>{r && r.pick >= 0 ? `${letters[r.pick]}) ${item.choices[r.pick]}` : "жауап жоқ"}</b>
-                    {!ok && r && <> · Дұрысы: <b>{letters[r.answer]}) {item.choices[r.answer]}</b></>}
+                    Сіздің жауабыңыз: <b>{r && r.pick >= 0 ? <>{letters[r.pick]}) <FormulaOrText text={item.choices[r.pick]} /></> : "жауап жоқ"}</b>
+                    {!ok && r && <> · Дұрысы: <b>{letters[r.answer]}) <FormulaOrText text={item.choices[r.answer]} /></b></>}
                   </small>
-                  {r?.explanation && <small className="qz-review__why">{r.explanation}</small>}
+                  {r?.explanation && <small className="qz-review__why"><QText text={r.explanation} /></small>}
                 </div>
               </li>
             );
@@ -208,7 +221,7 @@ export function TestPage() {
     </div>
   );
 
-  const crumbs = [{ label: "Курс", to: "/course" }, { label: `${section.order}-бөлім тесті` }];
+  const crumbs = [{ label: "Курс", to: "/course" }, { label: lessonMode ? "Сабақ тесті" : `${section.order}-бөлім тесті` }];
 
   return (
     <Shell variant="study" subtitle="Курс" flush streak={false} crumbs={crumbs}>
@@ -227,8 +240,8 @@ export function TestPage() {
             <div className="qm-card qm-head">
               <span className="qm-head__ico"><Icon name="assignment" size={18} /></span>
               <div>
-                <strong>{section.order}-бөлім тесті</strong>
-                <small>{section.title}</small>
+                <strong>{lessonMode ? "Сабақ тесті" : `${section.order}-бөлім тесті`}</strong>
+                <small>{lessonMode && lesson ? lesson.title : section.title}</small>
               </div>
               <Link to="/course" className="qm-head__x" aria-label="Тесттен шығу"><Icon name="close" size={16} /></Link>
             </div>
@@ -244,7 +257,7 @@ export function TestPage() {
             </div>
             {q.formula && (
               <div className="qm-banner">
-                <div><small>Формула</small><b>{q.formula}</b></div>
+                <div><small>Формула</small><b><FormulaOrText text={q.formula} /></b></div>
                 <span><Icon name="calculate" size={22} /></span>
               </div>
             )}
@@ -253,15 +266,15 @@ export function TestPage() {
                 <span>Сұрақ #{index + 1}</span>
                 <small><Icon name="star" size={16} color="var(--orange)" />1 ұпай</small>
               </header>
-              <p className="qm-q__text">{mathify(q.prompt)}</p>
+              <p className="qm-q__text"><QText text={q.prompt} /></p>
               <p className="qm-q__hint">Бір дұрыс жауапты таңдаңыз</p>
               <div className="qm-opts">
                 {q.choices.map((c, i) => {
                   const on = picks[index] === i;
                   return (
-                    <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} onClick={() => pick(i)}>
+                    <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} aria-label={`${letters[i]}) ${c}`} onClick={() => pick(i)}>
                       <span className="l">{letters[i]}</span>
-                      <span className="t">{c}</span>
+                      <span className="t"><FormulaOrText text={c} /></span>
                       <Icon name={on ? "check_circle" : "radio_button_unchecked"} size={on ? 22 : 20} />
                     </button>
                   );
@@ -287,11 +300,16 @@ export function TestPage() {
             <Icon name="chevron_right" size={12} />
             <span>{section.title}</span>
             <Icon name="chevron_right" size={12} />
-            <em>Тақырып тесті</em>
+            <em>{lessonMode ? "Сабақ тесті" : "Тақырып тесті"}</em>
           </p>
-          <h1>{section.title}: тақырыптық тест</h1>
+          <h1>{lessonMode && lesson ? `${lesson.title}: сабақ тесті` : `${section.title}: тақырыптық тест`}</h1>
           <p className="qz-ctx__note">
-            {nextSection ? <>Келесі бөлімді (<b>«{nextSection.title}»</b>) ашу үшін</> : "Тестті өту үшін"} кемінде {quiz.passPercent}% ({need}/{qs.length}) жинау қажет.
+            {lessonMode
+              ? <>Сабақты бекіту үшін</>
+              : nextSection
+                ? <>Келесі бөлімді (<b>«{nextSection.title}»</b>) ашу үшін</>
+                : "Тестті өту үшін"}{" "}
+            кемінде {quiz.passPercent}% ({need}/{qs.length}) жинау қажет.
           </p>
         </div>
         <div className="qz-toggle">
@@ -335,17 +353,17 @@ export function TestPage() {
                     <Icon name="bookmark" size={16} fill={flags.includes(index)} />Белгілеу
                   </button>
                 </header>
-                <p className="qz-q__text">{mathify(q.prompt)}</p>
+                <p className="qz-q__text"><QText text={q.prompt} /></p>
                 {q.formula && (
-                  <div className="qz-eq"><b>{q.formula}</b></div>
+                  <div className="qz-eq"><b><FormulaOrText text={q.formula} display /></b></div>
                 )}
                 <div className="qz-opts">
                   {q.choices.map((c, i) => {
                     const on = picks[index] === i;
                     return (
-                      <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} onClick={() => pick(i)}>
+                      <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} aria-label={`${letters[i]}) ${c}`} onClick={() => pick(i)}>
                         <span className="qz-opts__l">{letters[i]}</span>
-                        <span className="qz-opts__t">{c}</span>
+                        <span className="qz-opts__t"><FormulaOrText text={c} /></span>
                         <span className="qz-opts__r">{on && <Icon name="check" size={16} />}</span>
                       </button>
                     );

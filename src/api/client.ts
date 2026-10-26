@@ -123,6 +123,17 @@ export const api = {
     });
   },
 
+  lessonQuiz(key: string, lessonId: string) {
+    return request<QuizView>(`/courses/${enc(key)}/lessons/${enc(lessonId)}/quiz`);
+  },
+
+  submitLessonQuiz(key: string, lessonId: string, picks: number[]) {
+    return request<QuizSubmitResult>(`/courses/${enc(key)}/lessons/${enc(lessonId)}/quiz`, {
+      method: "POST",
+      body: JSON.stringify({ picks }),
+    });
+  },
+
   myEnrollments() {
     return request<{ enrollments: Array<EnrollmentInfo & { courseId: string; course: CourseSummary }> }>("/enrollments/me");
   },

@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "../api/client";
-import type { CourseView, OutlineLesson, OutlineSection } from "../types/course";
+import { Formula } from "./math";
+import type { CourseView, OutlineLesson, OutlineSection, QuizResultSummary } from "../types/course";
 
 let featuredSlug: string | null = null;
 
@@ -38,9 +39,59 @@ export function nextLesson(outline: OutlineSection[]): { section: OutlineSection
   return null;
 }
 
-/** First open section whose test is not passed yet. */
-export function nextQuiz(outline: OutlineSection[]): OutlineSection | null {
-  return outline.find((s) => s.quiz && !s.quiz.locked && !s.quiz.result?.passed) ?? null;
+export interface QuizStop {
+  id: string;
+  to: string;
+  title: string;
+  heading: string;
+  order: number;
+  questionCount: number;
+  passPercent: number;
+  timeLimitMinutes: number;
+  locked: boolean;
+  result: QuizResultSummary | null;
+}
+
+/** Lesson tests first, then the section test. Order follows the course. */
+export function quizStops(outline: OutlineSection[]): QuizStop[] {
+  const out: QuizStop[] = [];
+  for (const s of outline) {
+    s.lessons.forEach((l, i) => {
+      if (!l.quiz) return;
+      out.push({
+        id: l.id,
+        to: `/tests/lesson/${l.id}`,
+        title: l.title,
+        heading: `${s.order}.${i + 1} сабақ тесті`,
+        order: s.order,
+        questionCount: l.quiz.questionCount,
+        passPercent: l.quiz.passPercent,
+        timeLimitMinutes: l.quiz.timeLimitMinutes,
+        locked: l.quiz.locked,
+        result: l.quiz.result,
+      });
+    });
+    if (s.quiz) {
+      out.push({
+        id: s.id,
+        to: `/tests/${s.id}`,
+        title: s.title,
+        heading: `${s.order}-бөлім тесті`,
+        order: s.order,
+        questionCount: s.quiz.questionCount,
+        passPercent: s.quiz.passPercent,
+        timeLimitMinutes: s.quiz.timeLimitMinutes,
+        locked: s.quiz.locked,
+        result: s.quiz.result,
+      });
+    }
+  }
+  return out;
+}
+
+/** Next test the student can open and has not passed. */
+export function nextQuiz(outline: OutlineSection[]): QuizStop | null {
+  return quizStops(outline).find((q) => !q.locked && !q.result?.passed) ?? null;
 }
 
 /** Nothing to study yet: no lessons and no test. */
@@ -49,8 +100,10 @@ export function sectionEmpty(s: OutlineSection): boolean {
 }
 
 export function sectionDone(s: OutlineSection): boolean {
-  const lessonsDone = s.lessons.length > 0 && s.lessons.every((l) => l.completed);
-  return s.quiz ? Boolean(s.quiz.result?.passed) : lessonsDone;
+  if (sectionEmpty(s)) return false;
+  const lessonQuizzesOk = s.lessons.every((l) => !l.quiz || Boolean(l.quiz.result?.passed));
+  if (s.quiz) return Boolean(s.quiz.result?.passed) && lessonQuizzesOk;
+  return s.lessons.length > 0 && s.lessons.every((l) => l.completed) && lessonQuizzesOk;
 }
 
 export function fmtSize(bytes: number): string {
@@ -67,10 +120,11 @@ export function fmtMoney(n: number | null): string {
 
 export { parseVideo, VideoFrame, normalizeVideoUrl } from "./video";
 export type { Video } from "./video";
+export { Formula, MathText, FormulaOrText } from "./math";
 
 // ── Lesson text: a small, safe Markdown subset ──
 
-function inline(text: string): ReactNode[] {
+function formatPlain(text: string, keyBase: number): ReactNode[] {
   const out: ReactNode[] = [];
   const re = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\((?:https?:\/\/|\/)[^)\s]+\))/g;
   let last = 0;
@@ -79,15 +133,36 @@ function inline(text: string): ReactNode[] {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const t = m[0];
-    if (t.startsWith("**")) out.push(<b key={k++}>{t.slice(2, -2)}</b>);
-    else if (t.startsWith("`")) out.push(<code key={k++}>{t.slice(1, -1)}</code>);
+    if (t.startsWith("**")) out.push(<b key={keyBase + k++}>{t.slice(2, -2)}</b>);
+    else if (t.startsWith("`")) out.push(<code key={keyBase + k++}>{t.slice(1, -1)}</code>);
     else {
       const [, label, href] = t.match(/\[([^\]]+)\]\(([^)]+)\)/)!;
-      out.push(<a key={k++} href={href} target={href.startsWith("/") ? undefined : "_blank"} rel="noreferrer">{label}</a>);
+      out.push(
+        <a key={keyBase + k++} href={href} target={href.startsWith("/") ? undefined : "_blank"} rel="noreferrer">
+          {label}
+        </a>,
+      );
     }
     last = m.index + t.length;
   }
   if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
+function inline(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(...formatPlain(text.slice(last, m.index), k * 100));
+    const display = m[1] != null;
+    out.push(<Formula key={`m${k}`} tex={(display ? m[1] : m[2]).trim()} display={display} />);
+    k += 1;
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(...formatPlain(text.slice(last), k * 100));
   return out;
 }
 
@@ -98,8 +173,30 @@ export function Markdown({ text }: { text: string }) {
   let k = 0;
   while (i < lines.length) {
     const line = lines[i];
-    if (!line.trim()) {
+    const trimmed = line.trim();
+    if (!trimmed) {
       i += 1;
+      continue;
+    }
+    if (trimmed.startsWith("$$")) {
+      let body = trimmed.slice(2);
+      if (body.endsWith("$$")) {
+        body = body.slice(0, -2);
+        i += 1;
+      } else {
+        const buf = [body];
+        i += 1;
+        while (i < lines.length && !lines[i].includes("$$")) {
+          buf.push(lines[i]);
+          i += 1;
+        }
+        if (i < lines.length) {
+          buf.push(lines[i].replace("$$", ""));
+          i += 1;
+        }
+        body = buf.join("\n");
+      }
+      blocks.push(<Formula key={k++} tex={body.trim()} display />);
       continue;
     }
     const h = line.match(/^(#{2,3})\s+(.*)/);
@@ -126,9 +223,13 @@ export function Markdown({ text }: { text: string }) {
       continue;
     }
     const para: string[] = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{2,3}\s|\s*[-*]\s|\s*\d+[.)]\s)/.test(lines[i])) {
+    while (i < lines.length && lines[i].trim() && !/^(#{2,3}\s|\s*[-*]\s|\s*\d+[.)]\s|\$\$)/.test(lines[i])) {
       para.push(lines[i]);
       i += 1;
+    }
+    if (para.length === 1 && /\\[a-zA-Z]+/.test(para[0]) && !para[0].includes("$")) {
+      blocks.push(<Formula key={k++} tex={para[0].trim()} display />);
+      continue;
     }
     blocks.push(
       <p key={k++}>

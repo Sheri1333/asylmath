@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { AccessCard } from "../components/AccessCard";
-import { useMainCourse, sectionDone, sectionEmpty } from "../lib/course";
+import { MathText, useMainCourse, sectionDone, sectionEmpty } from "../lib/course";
 import { PageState } from "../components/PageState";
 
 export function ProgramPage() {
@@ -67,33 +67,57 @@ export function ProgramPage() {
                     <strong>{s.order}. {s.title}</strong>
                     <small>
                       {s.lessons.length ? `${lessonsDone} / ${s.lessons.length} сабақ` : "Сабақтар жақында қосылады"}
-                      {s.quiz && ` · тест ${s.quiz.questionCount} сұрақ`}
+                      {s.lessons.some((l) => l.quiz) && ` · сабақ тесттері ${s.lessons.filter((l) => l.quiz?.result?.passed).length}/${s.lessons.filter((l) => l.quiz).length}`}
+                      {s.quiz && ` · бөлім тесті ${s.quiz.questionCount} сұрақ`}
                     </small>
                   </span>
                   <Icon name="expand_more" size={24} className="prog__chev" />
                 </button>
                 {isOpen && (
                   <div className="prog__body">
-                    {s.description && <p className="prog__desc">{s.description}</p>}
+                    {s.description && <p className="prog__desc"><MathText text={s.description} /></p>}
                     {!s.open && access && <p className="prog__hint">Бұл бөлім алдыңғы бөлімнің тестін тапсырғаннан кейін ашылады.</p>}
                     <ul className="prog__lessons">
                       {s.lessons.map((l) => (
-                        <li key={l.id} className={l.completed ? "done" : l.locked ? "lock" : ""}>
-                          {l.locked ? (
-                            <span className="prog__row">
-                              <Icon name="lock" size={18} />
-                              <span>{l.title}</span>
-                              <em>{l.durationMinutes} мин</em>
-                            </span>
-                          ) : (
-                            <Link className="prog__row" to={`/lesson/${l.id}`}>
-                              <Icon name={l.completed ? "check_circle" : "play_circle"} size={18} fill={l.completed} />
-                              <span>{l.title}</span>
-                              {l.isPreview && !access && <b className="prog__free">Тегін</b>}
-                              <em>{l.durationMinutes} мин</em>
-                            </Link>
+                        <Fragment key={l.id}>
+                          <li className={l.completed ? "done" : l.locked ? "lock" : ""}>
+                            {l.locked ? (
+                              <span className="prog__row">
+                                <Icon name="lock" size={18} />
+                                <span>{l.title}</span>
+                                <em>{l.durationMinutes} мин</em>
+                              </span>
+                            ) : (
+                              <Link className="prog__row" to={`/lesson/${l.id}`}>
+                                <Icon name={l.completed ? "check_circle" : "play_circle"} size={18} fill={l.completed} />
+                                <span>{l.title}</span>
+                                {l.isPreview && !access && <b className="prog__free">Тегін</b>}
+                                <em>{l.durationMinutes} мин</em>
+                              </Link>
+                            )}
+                          </li>
+                          {l.quiz && (
+                            <li className={l.quiz.result?.passed ? "done quiz" : l.quiz.locked ? "lock quiz" : "quiz"}>
+                              {l.quiz.locked ? (
+                                <span className="prog__row">
+                                  <Icon name="lock" size={18} />
+                                  <span>Сабақ тесті</span>
+                                  <em>{l.quiz.questionCount} сұрақ</em>
+                                </span>
+                              ) : (
+                                <Link className="prog__row" to={`/tests/lesson/${l.id}`}>
+                                  <Icon name="quiz" size={18} />
+                                  <span>Сабақ тесті: {l.title}</span>
+                                  <em>
+                                    {l.quiz.result
+                                      ? `${l.quiz.result.best} / ${l.quiz.result.total}${l.quiz.result.passed ? " · өтті" : ""}`
+                                      : `${l.quiz.questionCount} сұрақ`}
+                                  </em>
+                                </Link>
+                              )}
+                            </li>
                           )}
-                        </li>
+                        </Fragment>
                       ))}
                       {s.quiz && (
                         <li className={s.quiz.result?.passed ? "done quiz" : s.quiz.locked ? "lock quiz" : "quiz"}>

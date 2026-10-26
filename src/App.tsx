@@ -31,6 +31,7 @@ export function App() {
           <Route path="/lesson" element={<Guard><LessonRedirect /></Guard>} />
           <Route path="/lesson/:lessonId" element={<Guard><StudyLessonPage /></Guard>} />
           <Route path="/tests" element={<Guard><TestRedirect /></Guard>} />
+          <Route path="/tests/lesson/:lessonId" element={<Guard><TestPage /></Guard>} />
           <Route path="/tests/:sectionId" element={<Guard><TestPage /></Guard>} />
           <Route path="/profile" element={<Guard><AccountPage /></Guard>} />
           <Route path="/admin" element={<Guard admin><AdminPage /></Guard>} />

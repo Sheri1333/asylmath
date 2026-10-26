@@ -3,8 +3,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import { fmtSize, Markdown, normalizeVideoUrl, parseVideo } from "../lib/course";
-import type { EditCourse, EditLesson, EditQuestion, EditSection, QuestionLevel } from "../types/course";
+import { fmtSize, FormulaOrText, Markdown, normalizeVideoUrl, parseVideo, VideoFrame } from "../lib/course";
+import type { EditCourse, EditLesson, EditQuestion, EditQuiz, EditSection, QuestionLevel } from "../types/course";
 
 const uid = () => crypto.randomUUID();
 const letters = "ABCDEFGH";
@@ -31,8 +31,10 @@ const blankSection = (n: number): EditSection => ({
   title: `Раздел ${n}`,
   description: "",
   lessons: [],
-  quiz: { passPercent: 70, timeLimitMinutes: 20, questions: [] },
+  quiz: blankQuiz(20),
 });
+
+const blankQuiz = (minutes = 10): EditQuiz => ({ passPercent: 70, timeLimitMinutes: minutes, questions: [] });
 
 const blankLesson = (): EditLesson => ({
   id: uid(),
@@ -43,6 +45,7 @@ const blankLesson = (): EditLesson => ({
   durationMinutes: 15,
   isPreview: false,
   materials: [],
+  quiz: blankQuiz(),
 });
 
 const blankQuestion = (): EditQuestion => ({
@@ -149,7 +152,16 @@ export function CourseEditorPage() {
           paymentUrl: course.paymentUrl,
           sections: course.sections.map((s) => ({
             ...s,
-            lessons: s.lessons.map((l) => ({ ...l, videoUrl: l.videoUrl ?? "", materials: l.materials ?? [] })),
+            lessons: s.lessons.map((l) => ({
+              ...l,
+              videoUrl: l.videoUrl ?? "",
+              materials: l.materials ?? [],
+              quiz: {
+                passPercent: l.quiz?.passPercent ?? 70,
+                timeLimitMinutes: l.quiz?.timeLimitMinutes ?? 10,
+                questions: (l.quiz?.questions ?? []).map((q) => ({ ...q, formula: q.formula ?? "" })),
+              },
+            })),
             quiz: { ...s.quiz, questions: s.quiz.questions.map((q) => ({ ...q, formula: q.formula ?? "" })) },
           })),
         };
@@ -210,7 +222,11 @@ export function CourseEditorPage() {
 
   const totals = {
     lessons: form.sections.reduce((n, s) => n + s.lessons.length, 0),
-    questions: form.sections.reduce((n, s) => n + s.quiz.questions.length, 0),
+    questions: form.sections.reduce(
+      (n, s) => n + s.quiz.questions.length + s.lessons.reduce((m, l) => m + l.quiz.questions.length, 0),
+      0,
+    ),
+    lessonQuizzes: form.sections.reduce((n, s) => n + s.lessons.filter((l) => l.quiz.questions.length > 0).length, 0),
     noVideo: form.sections.reduce((n, s) => n + s.lessons.filter((l) => !l.videoUrl).length, 0),
   };
 
@@ -230,7 +246,7 @@ export function CourseEditorPage() {
           <div className="ced-bar__title">
             <strong>{form.title || "Новый курс"}</strong>
             <small>
-              {form.sections.length} разделов · {totals.lessons} уроков · {totals.questions} вопросов
+              {form.sections.length} разделов · {totals.lessons} уроков · тесты уроков {totals.lessonQuizzes}/{totals.lessons} · {totals.questions} вопросов
               {totals.noVideo > 0 && ` · без видео: ${totals.noVideo}`}
             </small>
           </div>
@@ -307,7 +323,8 @@ export function CourseEditorPage() {
                     <span>
                       <strong>{s.title || "Без названия"}</strong>
                       <small>
-                        {s.lessons.length} уроков · {s.quiz.questions.length ? `тест ${s.quiz.questions.length} вопр.` : "без теста"}
+                        {s.lessons.length} уроков · тесты уроков {s.lessons.filter((l) => l.quiz.questions.length > 0).length}/{s.lessons.length}
+                        {s.quiz.questions.length ? ` · тест раздела ${s.quiz.questions.length} вопр.` : ""}
                       </small>
                     </span>
                     <Icon name="expand_more" size={24} className="prog__chev" />
@@ -350,6 +367,7 @@ export function CourseEditorPage() {
                                 <small>
                                   {l.durationMinutes} мин
                                   {l.videoUrl ? " · видео" : " · без видео"}
+                                  {l.quiz.questions.length ? ` · тест ${l.quiz.questions.length} вопр.` : " · без теста"}
                                   {(l.materials?.length ?? 0) > 0 && ` · файлов: ${l.materials!.length}`}
                                   {l.isPreview && " · бесплатный"}
                                 </small>
@@ -394,7 +412,13 @@ export function CourseEditorPage() {
                         <Icon name={openQuiz === s.id ? "expand_more" : "edit"} size={18} />{openQuiz === s.id ? "Свернуть" : "Редактировать тест"}
                       </button>
                     </div>
-                    {openQuiz === s.id && <QuizEditor section={s} onChange={(quiz) => setSection(si, { quiz })} />}
+                    {openQuiz === s.id && (
+                      <QuizEditor
+                        quiz={s.quiz}
+                        onChange={(quiz) => setSection(si, { quiz })}
+                        emptyHint="Вопросов нет. Раздел без вопросов не блокирует следующий."
+                      />
+                    )}
                   </div>
                 )}
               </article>
@@ -444,7 +468,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
         <label className="wide">Название урока<input value={lesson.title} onChange={(e) => onChange({ title: e.target.value })} /></label>
         <label className="wide">Кратко (1–2 предложения под заголовком)<input value={lesson.summary} onChange={(e) => onChange({ summary: e.target.value })} /></label>
         <label className="wide">
-          Видео: ссылка YouTube (или Vimeo, Kinescope, .mp4)
+          Видео: ссылка YouTube (или код встраивания, Vimeo, .mp4)
           <input
             value={lesson.videoUrl ?? ""}
             onChange={(e) => onChange({ videoUrl: e.target.value })}
@@ -454,25 +478,24 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
             }}
             placeholder="https://www.youtube.com/watch?v=… или https://youtu.be/…"
           />
-          {video?.kind === "youtube" ? (
-            <span className="ced-video">
-              <img src={video.thumb} alt="" />
-              <span>
-                <b>YouTube-видео распознано</b>
-                <small>ID {video.id}{video.start ? `, старт с ${Math.floor(video.start / 60)}:${String(video.start % 60).padStart(2, "0")}` : ""}</small>
-                <small>Ученик увидит обложку и кнопку воспроизведения прямо в уроке. Видео должно быть «Доступ по ссылке» или «Открытый» и с разрешённым встраиванием.</small>
-                <a href={`https://www.youtube.com/watch?v=${video.id}`} target="_blank" rel="noreferrer">Открыть на YouTube</a>
+          {video && video.kind !== "link" ? (
+            <>
+              <span className="ced-hint ok">
+                {video.kind === "youtube"
+                  ? `Ссылка разобрана, плеер ниже. ID ${video.id}${video.start ? `, старт с ${Math.floor(video.start / 60)}:${String(video.start % 60).padStart(2, "0")}` : ""}. Видео должно быть открытым или «по ссылке» и с разрешённым встраиванием.`
+                  : video.kind === "iframe"
+                    ? `Видео ${video.provider} откроется в плеере урока.`
+                    : "Файл откроется во встроенном плеере."}
               </span>
-            </span>
+              <div className="ced-player">
+                <VideoFrame url={lesson.videoUrl || null} title={lesson.title || "Урок"} />
+              </div>
+            </>
           ) : (
-            <span className={video ? (video.kind === "link" ? "ced-hint warn" : "ced-hint ok") : "ced-hint"}>
-              {!video
-                ? "Вставьте ссылку на YouTube в любом виде: watch, youtu.be, shorts, live или код встраивания <iframe>."
-                : video.kind === "iframe"
-                  ? `Видео ${video.provider} встроится в плеер урока.`
-                  : video.kind === "file"
-                    ? "Файл откроется во встроенном плеере."
-                    : "Ссылка не распознана как видео: проверьте, что это ссылка на конкретное видео YouTube, а не на канал или плейлист."}
+            <span className={video?.kind === "link" ? "ced-hint warn" : "ced-hint"}>
+              {video?.kind === "link"
+                ? "Ссылка не распознана как видео. Нужна ссылка на ролик YouTube (watch, youtu.be, shorts, live) или код <iframe>."
+                : "Вставьте ссылку на YouTube. Плеер появится здесь и у ученика в уроке."}
             </span>
           )}
         </label>
@@ -482,7 +505,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
 
       <div className="ced-content">
         <div className="ced-content__head">
-          <span>Текст урока</span>
+          <span>Описание урока</span>
           <div className="qz-toggle">
             <button type="button" className={!preview ? "on" : ""} onClick={() => setPreview(false)}>Редактор</button>
             <button type="button" className={preview ? "on" : ""} onClick={() => setPreview(true)}>Как увидит ученик</button>
@@ -492,8 +515,8 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
           <div className="les-card les-md ced-preview">{lesson.content ? <Markdown text={lesson.content} /> : <p className="adm-muted">Пусто</p>}</div>
         ) : (
           <>
-            <textarea className="ced-md" rows={10} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"## Подзаголовок\n\nОбычный текст абзаца.\n\n- пункт списка\n- **жирный текст**\n\n1. шаг первый\n2. шаг второй"} />
-            <small className="ced-hint">Оформление: «## » — подзаголовок, «- » — список, «1. » — нумерация, **жирный**, `формула`, [текст](https://ссылка).</small>
+            <textarea className="ced-md" rows={10} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"## Подзаголовок\n\nОбычный текст. Формула в строке: $x^2 + px + q = 0$.\n\n$$\n\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n- пункт списка\n- **жирный текст**"} />
+            <small className="ced-hint">Можно писать что угодно. Формула в строке: $x^2+1$. Формула отдельным блоком: $$ ... $$. Ещё: «## » — подзаголовок, «- » — список, **жирный**, [текст](https://ссылка).</small>
           </>
         )}
       </div>
@@ -523,12 +546,17 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
           </ul>
         )}
       </div>
+
+      <div className="ced-quiz-head">
+        <h4 className="adm-sub">Тест урока <small>{lesson.quiz.questions.length} вопр.</small></h4>
+      </div>
+      <p className="ced-hint">Ученик увидит этот тест под видео. Пока вопросов нет, кнопки теста не будет.</p>
+      <QuizEditor quiz={lesson.quiz} onChange={(quiz) => onChange({ quiz })} emptyHint="Вопросов нет — ученик не увидит тест у этого урока." />
     </div>
   );
 }
 
-function QuizEditor({ section, onChange }: { section: EditSection; onChange: (quiz: EditSection["quiz"]) => void }) {
-  const quiz = section.quiz;
+function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (quiz: EditQuiz) => void; emptyHint: string }) {
   const [bulk, setBulk] = useState(false);
   const [text, setText] = useState("");
   const parsed = useMemo(() => (text.trim() ? parseQuestions(text) : null), [text]);
@@ -560,7 +588,15 @@ function QuizEditor({ section, onChange }: { section: EditSection; onChange: (qu
             </header>
             <div className="adm-fields">
               <label className="wide">Текст вопроса<textarea rows={2} value={q.prompt} onChange={(e) => setQ(qi, { prompt: e.target.value })} /></label>
-              <label className="wide">Формула под вопросом (необязательно)<input value={q.formula ?? ""} onChange={(e) => setQ(qi, { formula: e.target.value })} placeholder="x² + px + q = 0" /></label>
+              <label className="wide">
+                Формула под вопросом (необязательно)
+                <input value={q.formula ?? ""} onChange={(e) => setQ(qi, { formula: e.target.value })} placeholder="x^2 + px + q = 0 или \frac{a}{b}" />
+                {q.formula?.trim() && (
+                  <span className="ced-formula">
+                    <FormulaOrText text={q.formula} display />
+                  </span>
+                )}
+              </label>
             </div>
             <fieldset className="ced-choices">
               <legend>Варианты ответа — отметьте правильный</legend>
@@ -589,7 +625,7 @@ function QuizEditor({ section, onChange }: { section: EditSection; onChange: (qu
           </li>
         ))}
       </ol>
-      {quiz.questions.length === 0 && <p className="adm-muted">Вопросов нет. Раздел без вопросов не блокирует следующий.</p>}
+      {quiz.questions.length === 0 && <p className="adm-muted">{emptyHint}</p>}
 
       <div className="ced-quiz__add">
         <button type="button" className="adm-add" onClick={() => onChange({ ...quiz, questions: [...quiz.questions, blankQuestion()] })}>

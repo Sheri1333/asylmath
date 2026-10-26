@@ -86,6 +86,10 @@ a.prog__row:hover { background: var(--lav); }
 .md b { font-weight: 700; color: var(--ink); }
 .md code { padding: 1px 6px; border-radius: 6px; background: var(--soft); font: 600 15px/24px "Liberation Mono", Consolas, monospace; color: var(--navy); }
 .md a { color: var(--blue); text-decoration: underline; }
+.math--block { display: block; margin: 8px 0; overflow-x: auto; text-align: center; }
+.md .katex { font-size: 1.05em; }
+.qz-eq .katex, .qm-banner .katex, .ced-formula .katex { font-size: 1.2em; }
+.ced-formula { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--soft); overflow-x: auto; }
 .les-md { padding: 24px 28px; }
 .les-head__chips .free { background: var(--mint); color: #00236f; font-weight: 600; }
 .les-bar__crumbs a { color: var(--muted); }
@@ -227,6 +231,11 @@ a.prog__row:hover { background: var(--lav); }
 .lm-player .vid__play { width: 58px; height: 58px; box-shadow: 0 0 0 7px rgba(30, 111, 255, 0.25); }
 .lm-player .vid__title { font-size: 13px; }
 
+.ced-player { position: relative; width: 100%; max-width: 720px; aspect-ratio: 16 / 9; margin-top: 8px; border-radius: 14px; overflow: hidden; background: #283044; }
+.les-quiz { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255, 219, 202, 0.45); }
+.les-quiz strong { display: block; font: 700 16px/22px var(--head); color: var(--ink); }
+.les-quiz small { display: block; margin-top: 2px; font: 500 13px/18px var(--text); color: var(--muted); }
+.les-item.sub { margin-left: 28px; }
 .ced-video { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 14px; background: var(--soft); }
 .ced-video img { width: 136px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; flex-shrink: 0; }
 .ced-video > span { display: flex; flex-direction: column; gap: 3px; }
