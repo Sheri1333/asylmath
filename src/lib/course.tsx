@@ -1,5 +1,6 @@
-import { Fragment, useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "../api/client";
+import { parseLesson } from "./lessonText";
 import { Formula } from "./math";
 import type { CourseView, OutlineLesson, OutlineSection, QuizResultSummary } from "../types/course";
 
@@ -158,7 +159,18 @@ function inline(text: string): ReactNode[] {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(...formatPlain(text.slice(last, m.index), k * 100));
     const display = m[1] != null;
-    out.push(<Formula key={`m${k}`} tex={(display ? m[1] : m[2]).trim()} display={display} />);
+    const tex = (display ? m[1] : m[2]).trim();
+    out.push(
+      display ? (
+        <div key={`m${k}`} className="math-frame">
+          <Formula tex={tex} display />
+        </div>
+      ) : (
+        <span key={`m${k}`} className="math-frame math-frame--inline">
+          <Formula tex={tex} />
+        </span>
+      ),
+    );
     k += 1;
     last = m.index + m[0].length;
   }
@@ -166,81 +178,38 @@ function inline(text: string): ReactNode[] {
   return out;
 }
 
+function Board({ tex, caption }: { tex: string; caption?: string }) {
+  return (
+    <figure className="math-frame">
+      {caption && <figcaption>{caption}</figcaption>}
+      <Formula tex={tex} display />
+    </figure>
+  );
+}
+
 export function Markdown({ text }: { text: string }) {
-  const blocks: ReactNode[] = [];
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  let i = 0;
-  let k = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (!trimmed) {
-      i += 1;
-      continue;
+  const blocks = parseLesson(text).map((block, k) => {
+    if (block.kind === "board") return <Board key={k} tex={block.tex} caption={block.caption} />;
+    if (block.kind === "heading") {
+      return block.level === 2 ? <h3 key={k}>{inline(block.text)}</h3> : <h4 key={k}>{inline(block.text)}</h4>;
     }
-    if (trimmed.startsWith("$$")) {
-      let body = trimmed.slice(2);
-      if (body.endsWith("$$")) {
-        body = body.slice(0, -2);
-        i += 1;
-      } else {
-        const buf = [body];
-        i += 1;
-        while (i < lines.length && !lines[i].includes("$$")) {
-          buf.push(lines[i]);
-          i += 1;
-        }
-        if (i < lines.length) {
-          buf.push(lines[i].replace("$$", ""));
-          i += 1;
-        }
-        body = buf.join("\n");
-      }
-      blocks.push(<Formula key={k++} tex={body.trim()} display />);
-      continue;
-    }
-    const h = line.match(/^(#{2,3})\s+(.*)/);
-    if (h) {
-      blocks.push(h[1].length === 2 ? <h3 key={k++}>{inline(h[2])}</h3> : <h4 key={k++}>{inline(h[2])}</h4>);
-      i += 1;
-      continue;
-    }
-    if (/^\s*[-*]\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)) {
-      const ordered = /^\s*\d+[.)]\s+/.test(line);
-      const items: string[] = [];
-      while (i < lines.length && (ordered ? /^\s*\d+[.)]\s+/ : /^\s*[-*]\s+/).test(lines[i])) {
-        items.push(lines[i].replace(/^\s*(?:[-*]|\d+[.)])\s+/, ""));
-        i += 1;
-      }
-      const List = ordered ? "ol" : "ul";
-      blocks.push(
-        <List key={k++}>
-          {items.map((it, j) => (
+    if (block.kind === "list") {
+      return (
+        <ul key={k}>
+          {block.items.map((it, j) => (
             <li key={j}>{inline(it)}</li>
           ))}
-        </List>,
+        </ul>
       );
-      continue;
     }
-    const para: string[] = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{2,3}\s|\s*[-*]\s|\s*\d+[.)]\s|\$\$)/.test(lines[i])) {
-      para.push(lines[i]);
-      i += 1;
+    if (block.kind === "mistake") {
+      return (
+        <aside key={k} className="md-mistake">
+          {inline(block.text)}
+        </aside>
+      );
     }
-    if (para.length === 1 && /\\[a-zA-Z]+/.test(para[0]) && !para[0].includes("$")) {
-      blocks.push(<Formula key={k++} tex={para[0].trim()} display />);
-      continue;
-    }
-    blocks.push(
-      <p key={k++}>
-        {para.map((p, j) => (
-          <Fragment key={j}>
-            {j > 0 && <br />}
-            {inline(p)}
-          </Fragment>
-        ))}
-      </p>,
-    );
-  }
+    return <p key={k}>{inline(block.text)}</p>;
+  });
   return <div className="md">{blocks}</div>;
 }

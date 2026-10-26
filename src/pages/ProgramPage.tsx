@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { AccessCard } from "../components/AccessCard";
-import { MathText, useMainCourse, sectionDone, sectionEmpty } from "../lib/course";
+import { Markdown, useMainCourse, sectionDone, sectionEmpty } from "../lib/course";
 import { PageState } from "../components/PageState";
 
 export function ProgramPage() {
@@ -75,7 +75,7 @@ export function ProgramPage() {
                 </button>
                 {isOpen && (
                   <div className="prog__body">
-                    {s.description && <p className="prog__desc"><MathText text={s.description} /></p>}
+                    {s.description && <div className="prog__desc"><Markdown text={s.description} /></div>}
                     {!s.open && access && <p className="prog__hint">Бұл бөлім алдыңғы бөлімнің тестін тапсырғаннан кейін ашылады.</p>}
                     <ul className="prog__lessons">
                       {s.lessons.map((l) => (

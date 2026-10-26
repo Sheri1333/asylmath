@@ -87,7 +87,7 @@ export function parseQuestions(text: string): { questions: EditQuestion[]; error
       const line = raw.trim();
       const opt = line.match(/^(\*|\+)?\s*([A-HА-Еa-hа-е])\s*[).:]\s*(.+?)\s*(\*|\+)?$/);
       const ans = line.match(/^(?:ответ|жауап|answer)\s*[:\-–]\s*([A-HА-Еa-hа-е])/i);
-      const exp = line.match(/^(?:пояснение|түсіндірме|решение|шешуі|explanation)\s*[:\-–]\s*(.*)/i);
+      const exp = line.match(/^(?:пояснение|работа с ошибками|ошибк[аи]|жиі қате|түсіндірме|решение|шешуі|explanation)\s*[:\-–]\s*(.*)/i);
       const frm = line.match(/^(?:формула|formula)\s*[:\-–]\s*(.*)/i);
       if (opt && (choices.length > 0 || prompt.length > 0)) {
         if (opt[1] || opt[4]) answer = choices.length;
@@ -246,7 +246,7 @@ export function CourseEditorPage() {
           <div className="ced-bar__title">
             <strong>{form.title || "Новый курс"}</strong>
             <small>
-              {form.sections.length} разделов · {totals.lessons} уроков · тесты уроков {totals.lessonQuizzes}/{totals.lessons} · {totals.questions} вопросов
+              {form.sections.length} разделов · {totals.lessons} подразделов · тесты {totals.lessonQuizzes}/{totals.lessons} · {totals.questions} вопросов
               {totals.noVideo > 0 && ` · без видео: ${totals.noVideo}`}
             </small>
           </div>
@@ -309,7 +309,7 @@ export function CourseEditorPage() {
 
           {form.sections.length === 0 && (
             <div className="acc__empty">
-              <p>Разделов пока нет. Раздел — это тема курса (например, «Тригонометрия»): в нём уроки и тест в конце.</p>
+              <p>Разделов пока нет. У раздела — название и описание. Внутри подразделы: видео, описание и тест.</p>
             </div>
           )}
 
@@ -323,7 +323,7 @@ export function CourseEditorPage() {
                     <span>
                       <strong>{s.title || "Без названия"}</strong>
                       <small>
-                        {s.lessons.length} уроков · тесты уроков {s.lessons.filter((l) => l.quiz.questions.length > 0).length}/{s.lessons.length}
+                        {s.lessons.length} подразделов · тесты {s.lessons.filter((l) => l.quiz.questions.length > 0).length}/{s.lessons.length}
                         {s.quiz.questions.length ? ` · тест раздела ${s.quiz.questions.length} вопр.` : ""}
                       </small>
                     </span>
@@ -349,11 +349,20 @@ export function CourseEditorPage() {
                 {isOpen && (
                   <div className="ced-sec__body">
                     <div className="adm-fields">
-                      <label className="wide">Название раздела<input value={s.title} onChange={(e) => setSection(si, { title: e.target.value })} /></label>
-                      <label className="wide">Краткое описание<textarea rows={2} value={s.description} onChange={(e) => setSection(si, { description: e.target.value })} /></label>
+                      <label className="wide">Название<input value={s.title} onChange={(e) => setSection(si, { title: e.target.value })} /></label>
+                      <label className="wide">
+                        Описание
+                        <textarea rows={4} value={s.description} onChange={(e) => setSection(si, { description: e.target.value })} placeholder="Текст раздела. Формулы пишутся так же, как в уроке." />
+                      </label>
                     </div>
+                    {s.description.trim() && (
+                      <div className="ced-content">
+                        <div className="ced-content__head"><span>Как увидит ученик</span></div>
+                        <div className="les-card les-md ced-preview"><Markdown text={s.description} /></div>
+                      </div>
+                    )}
 
-                    <h4 className="adm-sub">Уроки <small>{s.lessons.length}</small></h4>
+                    <h4 className="adm-sub">Подразделы <small>{s.lessons.length}</small></h4>
                     <ul className="ced-lessons">
                       {s.lessons.map((l, li) => {
                         const key = l.id!;
@@ -403,7 +412,7 @@ export function CourseEditorPage() {
                         setOpenLesson(l.id!);
                       }}
                     >
-                      <Icon name="add" size={18} />Добавить урок
+                      <Icon name="add" size={18} />Добавить подраздел
                     </button>
 
                     <div className="ced-quiz-head">
@@ -465,8 +474,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
   return (
     <div className="ced-edit">
       <div className="adm-fields">
-        <label className="wide">Название урока<input value={lesson.title} onChange={(e) => onChange({ title: e.target.value })} /></label>
-        <label className="wide">Кратко (1–2 предложения под заголовком)<input value={lesson.summary} onChange={(e) => onChange({ summary: e.target.value })} /></label>
+        <label className="wide">Название<input value={lesson.title} onChange={(e) => onChange({ title: e.target.value })} /></label>
         <label className="wide">
           Видео: ссылка YouTube (или код встраивания, Vimeo, .mp4)
           <input
@@ -505,7 +513,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
 
       <div className="ced-content">
         <div className="ced-content__head">
-          <span>Описание урока</span>
+          <span>Описание</span>
           <div className="qz-toggle">
             <button type="button" className={!preview ? "on" : ""} onClick={() => setPreview(false)}>Редактор</button>
             <button type="button" className={preview ? "on" : ""} onClick={() => setPreview(true)}>Как увидит ученик</button>
@@ -515,8 +523,8 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
           <div className="les-card les-md ced-preview">{lesson.content ? <Markdown text={lesson.content} /> : <p className="adm-muted">Пусто</p>}</div>
         ) : (
           <>
-            <textarea className="ced-md" rows={10} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"## Подзаголовок\n\nОбычный текст. Формула в строке: $x^2 + px + q = 0$.\n\n$$\n\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n- пункт списка\n- **жирный текст**"} />
-            <small className="ced-hint">Можно писать что угодно. Формула в строке: $x^2+1$. Формула отдельным блоком: $$ ... $$. Ещё: «## » — подзаголовок, «- » — список, **жирный**, [текст](https://ссылка).</small>
+            <textarea className="ced-md" rows={14} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"Айтатыным: «Екі қатынас тең болса, бұл пропорция.»\nТақтада:\na : b = c : d \\quad \\Longleftrightarrow \\quad \\frac{a}{b} = \\frac{c}{d}\n\n2. Пропорция (~4 мин)\nЖиі қате: шеткі мүшені ортаңғымен көбейту."} />
+            <small className="ced-hint">Вставляйте сценарий как есть. Строка «Тақтада:» и формулы (\frac, a : b = c : d, $x^2$) ученик видит в голубой рамке. «2. Название» — подзаголовок, «- » — список, **жирный**.</small>
           </>
         )}
       </div>
@@ -548,9 +556,9 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
       </div>
 
       <div className="ced-quiz-head">
-        <h4 className="adm-sub">Тест урока <small>{lesson.quiz.questions.length} вопр.</small></h4>
+        <h4 className="adm-sub">Тест <small>{lesson.quiz.questions.length} вопр.</small></h4>
       </div>
-      <p className="ced-hint">Ученик увидит этот тест под видео. Пока вопросов нет, кнопки теста не будет.</p>
+      <p className="ced-hint">Ученик увидит этот тест под видео. Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
       <QuizEditor quiz={lesson.quiz} onChange={(quiz) => onChange({ quiz })} emptyHint="Вопросов нет — ученик не увидит тест у этого урока." />
     </div>
   );
@@ -592,7 +600,7 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                 Формула под вопросом (необязательно)
                 <input value={q.formula ?? ""} onChange={(e) => setQ(qi, { formula: e.target.value })} placeholder="x^2 + px + q = 0 или \frac{a}{b}" />
                 {q.formula?.trim() && (
-                  <span className="ced-formula">
+                  <span className="ced-formula math-frame">
                     <FormulaOrText text={q.formula} display />
                   </span>
                 )}
@@ -621,7 +629,7 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                 <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
               )}
             </fieldset>
-            <label className="ced-exp">Пояснение (ученик увидит после теста)<textarea rows={2} value={q.explanation} onChange={(e) => setQ(qi, { explanation: e.target.value })} /></label>
+            <label className="ced-exp">Работа с ошибками (ученик увидит снизу после сдачи)<textarea rows={3} value={q.explanation} onChange={(e) => setQ(qi, { explanation: e.target.value })} placeholder={"Жиі қате: шеткі мүшені ортаңғымен көбейтеді.\nДұрысы: a \\cdot d = b \\cdot c"} /></label>
           </li>
         ))}
       </ol>
@@ -639,7 +647,7 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
       {bulk && (
         <div className="ced-bulk">
           <p className="ced-hint">
-            Каждый вопрос — отдельный блок через пустую строку. Правильный вариант отметьте звёздочкой или строкой «Ответ: B». Строка «Пояснение:» — по желанию.
+            Каждый вопрос — отдельный блок через пустую строку. Правильный вариант отметьте звёздочкой или строкой «Ответ: B». Строка «Работа с ошибками:» — текст, который ученик увидит снизу после сдачи.
           </p>
           <textarea
             rows={10}

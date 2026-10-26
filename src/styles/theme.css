@@ -249,3 +249,35 @@ body { background: var(--bg); }
 .ced-choice input[type="radio"] { accent-color: var(--teal); }
 .adm-fields .adm-check input { accent-color: var(--teal); }
 :focus-visible { outline-color: rgba(30, 111, 255, 0.6); }
+
+.qz-opts button.good,
+.qz-opts button.good:hover,
+.qm-opts button.good,
+.qm-opts button.good:hover {
+  background: #e5f6ea;
+  box-shadow: 0 0 0 2px #178a3d;
+  opacity: 1;
+  cursor: default;
+}
+.qz-opts button.bad,
+.qz-opts button.bad:hover,
+.qm-opts button.bad,
+.qm-opts button.bad:hover {
+  background: #fdecea;
+  box-shadow: 0 0 0 2px #d92d20;
+  opacity: 1;
+  cursor: default;
+}
+.qz-opts button.good .qz-opts__l,
+.qz-opts button.good .qz-opts__r,
+.qm-opts button.good .l {
+  background: #178a3d;
+  color: #fff;
+}
+.qz-opts button.bad .qz-opts__l,
+.qz-opts button.bad .qz-opts__r,
+.qm-opts button.bad .l {
+  background: #d92d20;
+  color: #fff;
+}
+.qz-opts button:disabled { opacity: 1; }

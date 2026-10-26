@@ -255,7 +255,7 @@ export function cleanSections(input: unknown): SectionDoc[] {
     return {
       id: id(o.id),
       title,
-      description: str(o.description, 2000),
+      description: str(o.description, 20000),
       order: i + 1,
       lessons: (Array.isArray(o.lessons) ? o.lessons : []).map((l, j) => cleanLesson(l, j + 1)),
       quiz: cleanQuiz(o.quiz, `«${title}»`, 20),

@@ -166,7 +166,7 @@ export function StudyLessonPage() {
   const files = <Files items={lesson.materials} />;
   const body = (
     <>
-      {lesson.summary && <p className="les-intro"><MathText text={lesson.summary} /></p>}
+      {lesson.summary && !lesson.content && <p className="les-intro"><MathText text={lesson.summary} /></p>}
       {lesson.content ? (
         <article className="les-card les-md"><Markdown text={lesson.content} /></article>
       ) : (

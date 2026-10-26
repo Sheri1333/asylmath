@@ -4,7 +4,7 @@ import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
-import { FormulaOrText, mainSlug, MathText, nextQuiz, useMainCourse } from "../lib/course";
+import { FormulaOrText, mainSlug, Markdown, MathText, nextQuiz, useMainCourse } from "../lib/course";
 import type { QuizView, ReviewItem } from "../types/course";
 
 function fmt(sec: number) {
@@ -196,28 +196,36 @@ export function TestPage() {
           </div>
         </div>
       </article>
-      <article className="qz-card">
-        <h3 className="qz-res__title">Жауаптар талдауы</h3>
-        <ol className="qz-review">
-          {qs.map((item, i) => {
-            const r = outcome.review[i];
-            const ok = r && r.pick === r.answer;
-            return (
-              <li key={item.id} className={ok ? "ok" : "bad"}>
-                <span className="qz-review__n">{ok ? <Icon name="check" size={16} /> : <Icon name="close" size={16} />}</span>
-                <div>
-                  <p>{i + 1}. <QText text={item.prompt} /></p>
-                  <small>
-                    Сіздің жауабыңыз: <b>{r && r.pick >= 0 ? <>{letters[r.pick]}) <FormulaOrText text={item.choices[r.pick]} /></> : "жауап жоқ"}</b>
-                    {!ok && r && <> · Дұрысы: <b>{letters[r.answer]}) <FormulaOrText text={item.choices[r.answer]} /></b></>}
-                  </small>
-                  {r?.explanation && <small className="qz-review__why"><QText text={r.explanation} /></small>}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </article>
+      {qs.map((item, i) => {
+        const r = outcome.review[i];
+        return (
+          <article key={item.id} className="qz-card qz-q qz-after">
+            <p className="qz-q__text">{i + 1}. <QText text={item.prompt} /></p>
+            {item.formula && (
+              <div className="math-frame"><b><FormulaOrText text={item.formula} display /></b></div>
+            )}
+            <div className="qz-opts">
+              {item.choices.map((c, ci) => {
+                const good = Boolean(r && ci === r.answer);
+                const bad = Boolean(r && r.pick === ci && ci !== r.answer);
+                return (
+                  <button key={ci} type="button" disabled className={good ? "good" : bad ? "bad" : ""}>
+                    <span className="qz-opts__l">{letters[ci]}</span>
+                    <span className="qz-opts__t"><FormulaOrText text={c} /></span>
+                    <span className="qz-opts__r">{good ? <Icon name="check" size={16} /> : bad ? <Icon name="close" size={16} /> : null}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {r?.explanation && (
+              <div className="qz-errors">
+                <strong>Работа с ошибками</strong>
+                <Markdown text={r.explanation} />
+              </div>
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 
@@ -355,7 +363,7 @@ export function TestPage() {
                 </header>
                 <p className="qz-q__text"><QText text={q.prompt} /></p>
                 {q.formula && (
-                  <div className="qz-eq"><b><FormulaOrText text={q.formula} display /></b></div>
+                  <div className="math-frame"><b><FormulaOrText text={q.formula} display /></b></div>
                 )}
                 <div className="qz-opts">
                   {q.choices.map((c, i) => {
