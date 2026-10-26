@@ -133,7 +133,7 @@ a.prog__row:hover { background: var(--lav); }
 .adm .qz-toggle button { position: relative; }
 
 /* ── Course editor ── */
-.ced { max-width: 1040px; }
+.cab.ced { max-width: none; width: 100%; }
 .ced-bar { position: sticky; top: 72px; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); box-shadow: var(--sh-sm), 0 4px 16px rgba(0, 35, 111, 0.06); flex-wrap: wrap; }
 .ced-bar__title { flex: 1; min-width: 200px; }
 .ced-bar__title strong { display: block; font: 700 17px/24px var(--head); color: var(--ink); }

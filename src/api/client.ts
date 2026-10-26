@@ -1,3 +1,4 @@
+import { uid } from "../lib/id";
 import type {
   AdminEnrollment,
   CourseSummary,
@@ -209,7 +210,7 @@ export const api = {
     if (!res.ok || !data.file) {
       throw new Error(data.error || (res.status === 413 ? "Файл больше 20 МБ" : `Ошибка загрузки ${res.status}`));
     }
-    return { ...data.file, id: crypto.randomUUID() };
+    return { ...data.file, id: uid() };
   },
 
   adminUsers() {

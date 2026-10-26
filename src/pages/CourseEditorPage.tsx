@@ -4,9 +4,9 @@ import { api } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { fmtSize, FormulaOrText, Markdown, normalizeVideoUrl, parseVideo, VideoFrame } from "../lib/course";
+import { uid } from "../lib/id";
 import type { EditCourse, EditLesson, EditQuestion, EditQuiz, EditSection, QuestionLevel } from "../types/course";
 
-const uid = () => crypto.randomUUID();
 const letters = "ABCDEFGH";
 
 const blankCourse = (): EditCourse => ({
