@@ -168,7 +168,7 @@ export function StudyLessonPage() {
     <>
       {lesson.summary && !lesson.content && <p className="les-intro"><MathText text={lesson.summary} /></p>}
       {lesson.content ? (
-        <article className="les-card les-md"><Markdown text={lesson.content} /></article>
+        <article className="les-md"><Markdown text={lesson.content} /></article>
       ) : (
         <p className="adm-muted">Сабақтың сипаттамасы әлі қосылмаған.</p>
       )}

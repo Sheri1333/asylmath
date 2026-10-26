@@ -135,7 +135,7 @@ a.prog__row:hover { background: var(--lav); }
 .prog__desc .md { color: var(--ink); font-size: 15px; line-height: 24px; }
 .qz-eq .katex, .qm-banner .katex, .ced-formula .katex { font-size: 1.2em; }
 .ced-formula { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--soft); overflow-x: auto; }
-.les-md { padding: 24px 28px; }
+.les-md { padding: 4px 0 0; background: none; box-shadow: none; border-radius: 0; }
 .les-head__chips .free { background: var(--mint); color: #00236f; font-weight: 600; }
 .les-bar__crumbs a { color: var(--muted); }
 .les-bar__crumbs a:hover { color: var(--navy); text-decoration: underline; }
