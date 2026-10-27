@@ -277,7 +277,6 @@ a.prog__row:hover { background: var(--lav); }
 .lm-player .vid__title { font-size: 13px; }
 
 .ced-player { position: relative; width: 100%; max-width: 720px; aspect-ratio: 16 / 9; margin-top: 8px; border-radius: 14px; overflow: hidden; background: #283044; }
-.les-videos { display: flex; flex-direction: column; gap: 20px; }
 .les-practice { display: flex; flex-direction: column; gap: 10px; }
 .les-practice h2 { margin: 0; font: 800 22px/28px var(--head); letter-spacing: -0.4px; color: var(--ink); }
 .les-quiz { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255, 219, 202, 0.45); }

@@ -91,7 +91,7 @@ const IFRAME_ALLOW = "accelerometer; autoplay; clipboard-write; encrypted-media;
  * Lesson player. YouTube shows its preview frame first and loads the real player on click:
  * the page stays fast and nothing from YouTube loads until the student presses play.
  */
-export function VideoFrame({ url, title }: { url: string | null; title: string }) {
+export function VideoFrame({ url, title, caption = true }: { url: string | null; title: string; caption?: boolean }) {
   const v = parseVideo(url);
   const [playing, setPlaying] = useState(false);
 
@@ -108,7 +108,7 @@ export function VideoFrame({ url, title }: { url: string | null; title: string }
         <button type="button" className="vid vid--facade" onClick={() => setPlaying(true)} aria-label={`Видеоны қосу: ${title}`}>
           <img src={v.thumb} alt="" />
           <span className="vid__play"><Icon name="play_arrow" size={40} fill /></span>
-          <span className="vid__title">{title}</span>
+          {caption && <span className="vid__title">{title}</span>}
         </button>
       );
     return (
