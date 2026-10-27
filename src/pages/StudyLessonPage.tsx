@@ -28,12 +28,15 @@ export function StudyLessonPage() {
   const [error, setError] = useState<{ message: string; status: number } | null>(null);
   const [tab, setTab] = useState<"about" | "files" | "lessons">("about");
   const [saving, setSaving] = useState(false);
+  /** Lesson explanation first; optional ҰБТ problems video swaps the player only. */
+  const [clip, setClip] = useState<"lesson" | "practice">("lesson");
 
   const load = useCallback(async () => {
     try {
       setError(null);
       setData(await api.lesson(await mainSlug(), lessonId));
       setTab("about");
+      setClip("lesson");
     } catch (e) {
       setError({ message: e instanceof Error ? e.message : "Қате", status: e instanceof ApiError ? e.status : 0 });
     }
@@ -41,6 +44,7 @@ export function StudyLessonPage() {
 
   useEffect(() => {
     setData(null);
+    setClip("lesson");
     void load();
     window.scrollTo(0, 0);
   }, [load]);
@@ -94,6 +98,11 @@ export function StudyLessonPage() {
     navigate(to);
   }
 
+  const hasPractice = Boolean(lesson.practiceVideoUrl);
+  const onPractice = hasPractice && clip === "practice";
+  const videoUrl = onPractice ? lesson.practiceVideoUrl : lesson.videoUrl;
+  const videoTitle = onPractice ? "ҰБТ Есептері" : lesson.title;
+
   const next = lessonQuiz && !lessonQuiz.result?.passed
     ? { to: `/tests/lesson/${lesson.id}`, label: "Сабақ тестіне өту" }
     : lastInSection && quizOpen
@@ -101,6 +110,11 @@ export function StudyLessonPage() {
       : navigation.nextLessonId
         ? { to: `/lesson/${navigation.nextLessonId}`, label: "Келесі сабақ" }
         : { to: "/course", label: "Курс бағдарламасы" };
+
+  function openPractice() {
+    setClip("practice");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const list = (
     <article className="les-list">
@@ -172,14 +186,6 @@ export function StudyLessonPage() {
       ) : (
         <p className="adm-muted">Сабақтың сипаттамасы әлі қосылмаған.</p>
       )}
-      {lesson.practiceVideoUrl && (
-        <section className="les-practice">
-          <h2>ҰБТ Есептері</h2>
-          <div className="player player--real">
-            <VideoFrame url={lesson.practiceVideoUrl} title="ҰБТ Есептері" caption={false} />
-          </div>
-        </section>
-      )}
       {lessonQuiz && !lessonQuiz.locked && (
         <article className="les-quiz">
           <div>
@@ -206,22 +212,31 @@ export function StudyLessonPage() {
           <Link to="/course" className="lm-back"><Icon name="arrow_back" size={16} />{section.order}. {section.title}</Link>
           <span className="lm-streak">{pos} / {sec.lessons.length}</span>
         </div>
-        <div className="lm-player lm-player--real"><VideoFrame url={lesson.videoUrl} title={lesson.title} /></div>
+        <div className="lm-player lm-player--real">
+          <VideoFrame key={`${clip}-${videoUrl ?? ""}`} url={videoUrl} title={videoTitle} caption={!onPractice} />
+        </div>
         <div className="lm-meta">
           <div className="lm-chips">
             <span className="ubt">{section.order}-бөлім</span>
+            {onPractice ? <span className="alg">ҰБТ сұрағы</span> : null}
             <span><Icon name="schedule" size={14} />{lesson.durationMinutes} мин</span>
             {lesson.completed && <span className="alg"><Icon name="check_circle" size={14} fill />Өтілді</span>}
           </div>
           <h1>{lesson.title}</h1>
         </div>
         <div className="lm-actions">
-          {navigation.prevLessonId ? (
+          {onPractice ? (
+            <button type="button" className="lm-prev" onClick={() => setClip("lesson")}><Icon name="chevron_left" size={18} />Сабақ</button>
+          ) : navigation.prevLessonId ? (
             <Link to={`/lesson/${navigation.prevLessonId}`} className="lm-prev"><Icon name="chevron_left" size={18} />Алдыңғы</Link>
           ) : (
             <Link to="/course" className="lm-prev"><Icon name="chevron_left" size={18} />Курс</Link>
           )}
-          <button type="button" className="lm-next" onClick={() => go(next.to)}>{next.label}<Icon name="arrow_forward" size={16} /></button>
+          {hasPractice && !onPractice ? (
+            <button type="button" className="lm-next" onClick={openPractice}>ҰБТ сұрағы<Icon name="arrow_forward" size={16} /></button>
+          ) : (
+            <button type="button" className="lm-next" onClick={() => go(next.to)}>{next.label}<Icon name="arrow_forward" size={16} /></button>
+          )}
         </div>
         <div className="lm-seg">
           <button type="button" className={tab === "about" ? "on" : ""} onClick={() => setTab("about")}>Сипаттама</button>
@@ -263,11 +278,14 @@ export function StudyLessonPage() {
         </aside>
 
         <div className="les-main">
-          <div className="player player--real"><VideoFrame url={lesson.videoUrl} title={lesson.title} /></div>
+          <div className="player player--real">
+            <VideoFrame key={`${clip}-${videoUrl ?? ""}`} url={videoUrl} title={videoTitle} caption={!onPractice} />
+          </div>
           <div className="les-head">
             <div className="les-head__chips">
               <span className="dark"><Icon name="schedule" size={18} />{lesson.durationMinutes} мин</span>
               <span>{pos} / {sec.lessons.length} сабақ</span>
+              {onPractice && <span className="free">ҰБТ сұрағы</span>}
               {lesson.isPreview && !active && <span className="free">Тегін сабақ</span>}
             </div>
             <h1>{lesson.title}</h1>
@@ -285,7 +303,9 @@ export function StudyLessonPage() {
       </div>
 
       <div className="les-foot">
-        {navigation.prevLessonId ? (
+        {onPractice ? (
+          <button type="button" className="les-foot__prev" onClick={() => setClip("lesson")}><Icon name="arrow_back" size={18} />Сабаққа оралу</button>
+        ) : navigation.prevLessonId ? (
           <Link to={`/lesson/${navigation.prevLessonId}`} className="les-foot__prev"><Icon name="arrow_back" size={18} />Алдыңғы сабақ</Link>
         ) : (
           <Link to="/course" className="les-foot__prev"><Icon name="arrow_back" size={18} />Курс бағдарламасы</Link>
@@ -297,7 +317,11 @@ export function StudyLessonPage() {
         ) : (
           <span className="les-foot__mid"><i />Толық курс төлемнен кейін ашылады</span>
         )}
-        <button type="button" className="les-foot__cta" onClick={() => go(next.to)}>{next.label}<Icon name="arrow_forward" size={18} /></button>
+        {hasPractice && !onPractice ? (
+          <button type="button" className="les-foot__cta" onClick={openPractice}>ҰБТ сұрағы<Icon name="arrow_forward" size={18} /></button>
+        ) : (
+          <button type="button" className="les-foot__cta" onClick={() => go(next.to)}>{next.label}<Icon name="arrow_forward" size={18} /></button>
+        )}
       </div>
     </Shell>
   );

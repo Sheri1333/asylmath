@@ -86,6 +86,12 @@ a.prog__row:hover { background: var(--lav); }
 .md b { font-weight: 700; color: var(--ink); }
 .md code { padding: 1px 6px; border-radius: 6px; background: var(--soft); font: 600 15px/24px "Liberation Mono", Consolas, monospace; color: var(--navy); }
 .md a { color: var(--blue); text-decoration: underline; }
+.md-table-wrap { overflow-x: auto; }
+.md-table { width: 100%; border-collapse: collapse; font: 400 15px/22px var(--text); }
+.md-table th, .md-table td { padding: 8px 12px; border: 1px solid var(--lav2); text-align: left; vertical-align: middle; }
+.md-table th { background: var(--soft); color: var(--navy); font-weight: 700; }
+.md-table td { background: transparent; }
+.md-table .math-frame--inline { padding: 0 4px; margin: 0 2px; }
 .math--block { display: block; overflow-x: auto; text-align: center; }
 .math-frame {
   display: block;
@@ -277,8 +283,6 @@ a.prog__row:hover { background: var(--lav); }
 .lm-player .vid__title { font-size: 13px; }
 
 .ced-player { position: relative; width: 100%; max-width: 720px; aspect-ratio: 16 / 9; margin-top: 8px; border-radius: 14px; overflow: hidden; background: #283044; }
-.les-practice { display: flex; flex-direction: column; gap: 10px; }
-.les-practice h2 { margin: 0; font: 800 22px/28px var(--head); letter-spacing: -0.4px; color: var(--ink); }
 .les-quiz { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 16px 18px; border-radius: 14px; background: rgba(255, 219, 202, 0.45); }
 .les-quiz strong { display: block; font: 700 16px/22px var(--head); color: var(--ink); }
 .les-quiz small { display: block; margin-top: 2px; font: 500 13px/18px var(--text); color: var(--muted); }

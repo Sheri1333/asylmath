@@ -535,7 +535,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
         />
         <VideoLink
           label="ҰБТ Есептері: видео с разбором задач (необязательно)"
-          emptyHint="Пусто по умолчанию. Если вставить ссылку, ученик увидит это видео после описания урока и до теста."
+          emptyHint="Пусто по умолчанию. Если есть ссылка, вместо «Келесі сабақ» будет «ҰБТ сұрағы»: меняется только видео, описание остаётся."
           value={lesson.practiceVideoUrl ?? ""}
           title="ҰБТ Есептері"
           onChange={(practiceVideoUrl) => onChange({ practiceVideoUrl })}
@@ -557,7 +557,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
         ) : (
           <>
             <textarea className="ced-md" rows={14} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"Айтатыным: «Екі қатынас тең болса, бұл пропорция.»\nТақтада:\na : b = c : d \\quad \\Longleftrightarrow \\quad \\frac{a}{b} = \\frac{c}{d}\n\n2. Пропорция (~4 мин)\nЖиі қате: шеткі мүшені ортаңғымен көбейту."} />
-            <small className="ced-hint">Вставляйте сценарий как есть. Строка «Тақтада:» и формулы (\frac, a : b = c : d, $x^2$) ученик видит в голубой рамке. «2. Название» — подзаголовок, «- » — список, **жирный**.</small>
+            <small className="ced-hint">Вставляйте сценарий как есть. Строка «Тақтада:» и формулы (\frac, a : b = c : d, $x^2$) ученик видит в голубой рамке. «2. Название» — подзаголовок, «- » — список, **жирный**. Таблица: строки подряд, столбцы через « | », первая строка — шапка. В ячейке формула пишется как $x^2$, модуль |x| можно оставлять как есть.</small>
           </>
         )}
       </div>
@@ -591,7 +591,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
       <div className="ced-quiz-head">
         <h4 className="adm-sub">Тест <small>{lesson.quiz.questions.length} вопр.</small></h4>
       </div>
-      <p className="ced-hint">Ученик увидит этот тест после описания и видео «ҰБТ Есептері». Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
+      <p className="ced-hint">Ученик увидит этот тест после видео урока (и «ҰБТ сұрағы», если оно есть). Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
       <QuizEditor quiz={lesson.quiz} onChange={(quiz) => onChange({ quiz })} emptyHint="Вопросов нет — ученик не увидит тест у этого урока." />
     </div>
   );
