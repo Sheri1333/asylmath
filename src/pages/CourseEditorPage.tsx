@@ -535,7 +535,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
         />
         <VideoLink
           label="ҰБТ Есептері: видео с разбором задач (необязательно)"
-          emptyHint="Пусто по умолчанию. Если есть ссылка, вместо «Келесі сабақ» будет «ҰБТ сұрағы»: меняется только видео, описание остаётся."
+          emptyHint="Пусто по умолчанию. Если есть ссылка, вместо «Келесі сабақ» будет «ҰБТ есептері»: меняется только видео, описание остаётся."
           value={lesson.practiceVideoUrl ?? ""}
           title="ҰБТ Есептері"
           onChange={(practiceVideoUrl) => onChange({ practiceVideoUrl })}
@@ -591,7 +591,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
       <div className="ced-quiz-head">
         <h4 className="adm-sub">Тест <small>{lesson.quiz.questions.length} вопр.</small></h4>
       </div>
-      <p className="ced-hint">Ученик увидит этот тест после видео урока (и «ҰБТ сұрағы», если оно есть). Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
+      <p className="ced-hint">Ученик увидит этот тест после видео урока (и «ҰБТ есептері», если оно есть). Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
       <QuizEditor quiz={lesson.quiz} onChange={(quiz) => onChange({ quiz })} emptyHint="Вопросов нет — ученик не увидит тест у этого урока." />
     </div>
   );
