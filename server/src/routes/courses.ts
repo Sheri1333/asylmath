@@ -106,6 +106,7 @@ coursesRouter.get("/:key/lessons/:lessonId", authRequired, async (req: AuthedReq
       summary: lesson.summary,
       content: lesson.content,
       videoUrl: lesson.videoUrl ?? null,
+      practiceVideoUrl: lesson.practiceVideoUrl ?? null,
       durationMinutes: lesson.durationMinutes,
       isPreview: Boolean(lesson.isPreview),
       materials: lesson.materials ?? [],

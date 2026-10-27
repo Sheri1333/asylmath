@@ -198,7 +198,7 @@ export function StudyLessonPage() {
           <Link to="/course" className="lm-back"><Icon name="arrow_back" size={16} />{section.order}. {section.title}</Link>
           <span className="lm-streak">{pos} / {sec.lessons.length}</span>
         </div>
-        <div className="lm-player lm-player--real"><VideoFrame url={lesson.videoUrl} title={lesson.title} /></div>
+        <LessonVideos url={lesson.videoUrl} practiceUrl={lesson.practiceVideoUrl} title={lesson.title} variant="phone" />
         <div className="lm-meta">
           <div className="lm-chips">
             <span className="ubt">{section.order}-бөлім</span>
@@ -255,7 +255,7 @@ export function StudyLessonPage() {
         </aside>
 
         <div className="les-main">
-          <div className="player player--real"><VideoFrame url={lesson.videoUrl} title={lesson.title} /></div>
+          <LessonVideos url={lesson.videoUrl} practiceUrl={lesson.practiceVideoUrl} title={lesson.title} variant="desk" />
           <div className="les-head">
             <div className="les-head__chips">
               <span className="dark"><Icon name="schedule" size={18} />{lesson.durationMinutes} мин</span>
@@ -292,6 +292,38 @@ export function StudyLessonPage() {
         <button type="button" className="les-foot__cta" onClick={() => go(next.to)}>{next.label}<Icon name="arrow_forward" size={18} /></button>
       </div>
     </Shell>
+  );
+}
+
+function LessonVideos({
+  url,
+  practiceUrl,
+  title,
+  variant,
+}: {
+  url: string | null;
+  practiceUrl: string | null;
+  title: string;
+  variant: "desk" | "phone";
+}) {
+  const showLesson = Boolean(url) || !practiceUrl;
+  const frame = variant === "phone" ? "lm-player lm-player--real" : "player player--real";
+  return (
+    <div className={variant === "phone" ? "lm-videos" : "les-videos"}>
+      {showLesson && (
+        <div className={frame}>
+          <VideoFrame url={url} title={title} />
+        </div>
+      )}
+      {practiceUrl && (
+        <section className={variant === "phone" ? "lm-practice" : "les-practice"}>
+          <h2>ҰБТ Есептері</h2>
+          <div className={frame}>
+            <VideoFrame url={practiceUrl} title="ҰБТ Есептері" />
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
 

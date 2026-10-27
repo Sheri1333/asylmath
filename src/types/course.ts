@@ -97,6 +97,7 @@ export interface LessonView {
     summary: string;
     content: string;
     videoUrl: string | null;
+    practiceVideoUrl: string | null;
     durationMinutes: number;
     isPreview: boolean;
     materials: Material[];
@@ -161,6 +162,7 @@ export interface EditLesson {
   summary: string;
   content: string;
   videoUrl?: string;
+  practiceVideoUrl?: string;
   durationMinutes: number;
   isPreview?: boolean;
   materials?: Material[];

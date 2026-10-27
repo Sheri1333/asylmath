@@ -52,6 +52,8 @@ export interface LessonDoc {
   summary: string;
   content: string;
   videoUrl?: string;
+  /** Optional second video: solved ҰБТ problems. Empty means the lesson has only the explanation, or no video at all. */
+  practiceVideoUrl?: string;
   durationMinutes: number;
   order: number;
   /** Open to signed-in visitors without paid access. */

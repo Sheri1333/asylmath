@@ -42,6 +42,7 @@ const blankLesson = (): EditLesson => ({
   summary: "",
   content: "",
   videoUrl: "",
+  practiceVideoUrl: "",
   durationMinutes: 15,
   isPreview: false,
   materials: [],
@@ -155,6 +156,7 @@ export function CourseEditorPage() {
             lessons: s.lessons.map((l) => ({
               ...l,
               videoUrl: l.videoUrl ?? "",
+              practiceVideoUrl: l.practiceVideoUrl ?? "",
               materials: l.materials ?? [],
               quiz: {
                 passPercent: l.quiz?.passPercent ?? 70,
@@ -227,7 +229,7 @@ export function CourseEditorPage() {
       0,
     ),
     lessonQuizzes: form.sections.reduce((n, s) => n + s.lessons.filter((l) => l.quiz.questions.length > 0).length, 0),
-    noVideo: form.sections.reduce((n, s) => n + s.lessons.filter((l) => !l.videoUrl).length, 0),
+    noVideo: form.sections.reduce((n, s) => n + s.lessons.filter((l) => !l.videoUrl && !l.practiceVideoUrl).length, 0),
   };
 
   return (
@@ -375,7 +377,7 @@ export function CourseEditorPage() {
                                 <strong>{l.title || "Без названия"}</strong>
                                 <small>
                                   {l.durationMinutes} мин
-                                  {l.videoUrl ? " · видео" : " · без видео"}
+                                  {l.videoUrl && l.practiceVideoUrl ? " · 2 видео" : l.videoUrl || l.practiceVideoUrl ? " · видео" : " · без видео"}
                                   {l.quiz.questions.length ? ` · тест ${l.quiz.questions.length} вопр.` : " · без теста"}
                                   {(l.materials?.length ?? 0) > 0 && ` · файлов: ${l.materials!.length}`}
                                   {l.isPreview && " · бесплатный"}
@@ -446,12 +448,61 @@ export function CourseEditorPage() {
   );
 }
 
+function VideoLink({
+  label,
+  emptyHint,
+  value,
+  title,
+  onChange,
+}: {
+  label: string;
+  emptyHint: string;
+  value: string;
+  title: string;
+  onChange: (url: string) => void;
+}) {
+  const video = parseVideo(value);
+  return (
+    <label className="wide">
+      {label}
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={(e) => {
+          const clean = normalizeVideoUrl(e.target.value);
+          if (clean !== value) onChange(clean);
+        }}
+        placeholder="https://www.youtube.com/watch?v=… или https://youtu.be/…"
+      />
+      {video && video.kind !== "link" ? (
+        <>
+          <span className="ced-hint ok">
+            {video.kind === "youtube"
+              ? `Ссылка разобрана, плеер ниже. ID ${video.id}${video.start ? `, старт с ${Math.floor(video.start / 60)}:${String(video.start % 60).padStart(2, "0")}` : ""}. Видео должно быть открытым или «по ссылке» и с разрешённым встраиванием.`
+              : video.kind === "iframe"
+                ? `Видео ${video.provider} откроется в плеере урока.`
+                : "Файл откроется во встроенном плеере."}
+          </span>
+          <div className="ced-player">
+            <VideoFrame url={value || null} title={title} />
+          </div>
+        </>
+      ) : (
+        <span className={video?.kind === "link" ? "ced-hint warn" : "ced-hint"}>
+          {video?.kind === "link"
+            ? "Ссылка не распознана как видео. Нужна ссылка на ролик YouTube (watch, youtu.be, shorts, live) или код <iframe>."
+            : emptyHint}
+        </span>
+      )}
+    </label>
+  );
+}
+
 function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (patch: Partial<EditLesson>) => void }) {
   const [preview, setPreview] = useState(false);
   const [uploading, setUploading] = useState("");
   const [upErr, setUpErr] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const video = parseVideo(lesson.videoUrl);
   const materials = lesson.materials ?? [];
 
   async function upload(files: FileList | null) {
@@ -475,38 +526,20 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
     <div className="ced-edit">
       <div className="adm-fields">
         <label className="wide">Название<input value={lesson.title} onChange={(e) => onChange({ title: e.target.value })} /></label>
-        <label className="wide">
-          Видео: ссылка YouTube (или код встраивания, Vimeo, .mp4)
-          <input
-            value={lesson.videoUrl ?? ""}
-            onChange={(e) => onChange({ videoUrl: e.target.value })}
-            onBlur={(e) => {
-              const clean = normalizeVideoUrl(e.target.value);
-              if (clean !== (lesson.videoUrl ?? "")) onChange({ videoUrl: clean });
-            }}
-            placeholder="https://www.youtube.com/watch?v=… или https://youtu.be/…"
-          />
-          {video && video.kind !== "link" ? (
-            <>
-              <span className="ced-hint ok">
-                {video.kind === "youtube"
-                  ? `Ссылка разобрана, плеер ниже. ID ${video.id}${video.start ? `, старт с ${Math.floor(video.start / 60)}:${String(video.start % 60).padStart(2, "0")}` : ""}. Видео должно быть открытым или «по ссылке» и с разрешённым встраиванием.`
-                  : video.kind === "iframe"
-                    ? `Видео ${video.provider} откроется в плеере урока.`
-                    : "Файл откроется во встроенном плеере."}
-              </span>
-              <div className="ced-player">
-                <VideoFrame url={lesson.videoUrl || null} title={lesson.title || "Урок"} />
-              </div>
-            </>
-          ) : (
-            <span className={video?.kind === "link" ? "ced-hint warn" : "ced-hint"}>
-              {video?.kind === "link"
-                ? "Ссылка не распознана как видео. Нужна ссылка на ролик YouTube (watch, youtu.be, shorts, live) или код <iframe>."
-                : "Вставьте ссылку на YouTube. Плеер появится здесь и у ученика в уроке."}
-            </span>
-          )}
-        </label>
+        <VideoLink
+          label="Видео урока: ссылка YouTube (или код встраивания, Vimeo, .mp4)"
+          emptyHint="Вставьте ссылку на объяснение урока. Можно оставить пустым — тогда у ученика будет только конспект."
+          value={lesson.videoUrl ?? ""}
+          title={lesson.title || "Урок"}
+          onChange={(videoUrl) => onChange({ videoUrl })}
+        />
+        <VideoLink
+          label="ҰБТ Есептері: видео с разбором задач (необязательно)"
+          emptyHint="Пусто по умолчанию. Если вставить ссылку, ученик увидит это видео сразу после объяснения урока и до теста."
+          value={lesson.practiceVideoUrl ?? ""}
+          title="ҰБТ Есептері"
+          onChange={(practiceVideoUrl) => onChange({ practiceVideoUrl })}
+        />
         <label>Длительность, мин<input type="number" min={0} max={600} value={lesson.durationMinutes} onChange={(e) => onChange({ durationMinutes: Number(e.target.value) || 0 })} /></label>
         <label className="adm-check"><input type="checkbox" checked={Boolean(lesson.isPreview)} onChange={(e) => onChange({ isPreview: e.target.checked })} />Бесплатный пробный урок (виден без оплаты)</label>
       </div>
@@ -558,7 +591,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
       <div className="ced-quiz-head">
         <h4 className="adm-sub">Тест <small>{lesson.quiz.questions.length} вопр.</small></h4>
       </div>
-      <p className="ced-hint">Ученик увидит этот тест под видео. Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
+      <p className="ced-hint">Ученик увидит этот тест после обоих видео и описания. Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
       <QuizEditor quiz={lesson.quiz} onChange={(quiz) => onChange({ quiz })} emptyHint="Вопросов нет — ученик не увидит тест у этого урока." />
     </div>
   );
