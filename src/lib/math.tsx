@@ -36,8 +36,21 @@ export function FormulaOrText({ text, display = false }: { text: string; display
   const raw = text.trim();
   if (!raw) return null;
   const block = raw.match(/^\$\$([\s\S]+)\$\$$/);
-  const inline = raw.match(/^\$(.+)\$$/);
-  const tex = (block?.[1] ?? inline?.[1] ?? raw).trim();
-  if (block || inline || /[\\^_]/.test(raw)) return <Formula tex={tex} display={display || Boolean(block)} />;
+  const inline = !block && raw.match(/^\$([\s\S]+)\$$/);
+  let tex = (block?.[1] ?? inline?.[1] ?? raw).trim();
+  const asDisplay = display || Boolean(block);
+  if (asDisplay && tex.includes("\n") && /[\\^_=]/.test(tex) && !/\\\\|\\begin\{/.test(tex)) {
+    const lines = tex.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+    tex = `\\begin{gathered} ${lines.join(" \\\\ ")} \\end{gathered}`;
+  }
+  if (block || inline || /[\\^_]/.test(tex)) return <Formula tex={tex} display={asDisplay} />;
   return <>{raw}</>;
+}
+
+/** An answer option: `$...$` inside a sentence, or the whole line as a formula. */
+export function ChoiceMath({ text }: { text: string }) {
+  const raw = text.trim();
+  if (!raw) return null;
+  if (raw.includes("$")) return <MathText text={raw} />;
+  return <FormulaOrText text={raw} />;
 }

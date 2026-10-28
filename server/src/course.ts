@@ -231,18 +231,18 @@ const levels: QuestionLevel[] = ["easy", "mid", "hard"];
 
 function cleanQuestion(q: unknown, n: number, section: string): QuestionDoc {
   const o = (q ?? {}) as Record<string, unknown>;
-  const prompt = str(o.prompt, 4000);
-  const choices = (Array.isArray(o.choices) ? o.choices : []).map((c) => str(c, 500)).filter(Boolean);
+  const prompt = str(o.prompt, 8000);
+  const choices = (Array.isArray(o.choices) ? o.choices : []).map((c) => str(c, 2000)).filter(Boolean);
   if (!prompt) throw new Error(`«${section}», вопрос ${n}: нужен текст вопроса`);
   if (choices.length < 2) throw new Error(`«${section}», вопрос ${n}: нужно минимум 2 варианта ответа`);
   const answer = num(o.answer, 0, 0, choices.length - 1);
   return {
     id: id(o.id),
     prompt,
-    formula: str(o.formula, 4000) || undefined,
+    formula: str(o.formula, 8000) || undefined,
     choices,
     answer,
-    explanation: str(o.explanation, 4000),
+    explanation: str(o.explanation, 20000),
     level: levels.includes(o.level as QuestionLevel) ? (o.level as QuestionLevel) : "mid",
   };
 }

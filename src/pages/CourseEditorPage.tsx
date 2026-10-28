@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
-import { fmtSize, FormulaOrText, Markdown, normalizeVideoUrl, parseVideo, VideoFrame } from "../lib/course";
+import { ChoiceMath, fmtSize, FormulaOrText, Markdown, normalizeVideoUrl, parseVideo, VideoFrame } from "../lib/course";
 import { uid } from "../lib/id";
 import type { EditCourse, EditLesson, EditQuestion, EditQuiz, EditSection, QuestionLevel } from "../types/course";
 
@@ -69,10 +69,11 @@ function move<T>(list: T[], from: number, to: number): T[] {
 
 /**
  * Bulk question import. Blocks are separated by an empty line:
- *   Текст вопроса
+ *   Текст вопроса, формулы как $x^2$ или строка $$...$$
  *   A) вариант
  *   *B) правильный вариант   (или «Ответ: B»)
- *   Пояснение: почему
+ *   Формула: уравнение под вопросом
+ *   Решение: разбор, списки с «- » и формулы сохраняются
  */
 export function parseQuestions(text: string): { questions: EditQuestion[]; errors: string[] } {
   const questions: EditQuestion[] = [];
@@ -84,26 +85,36 @@ export function parseQuestions(text: string): { questions: EditQuestion[]; error
     let answer = -1;
     let explanation = "";
     let formula = "";
+    let inExplanation = false;
     for (const raw of block.split("\n")) {
       const line = raw.trim();
+      if (!line) continue;
       const opt = line.match(/^(\*|\+)?\s*([A-HА-Еa-hа-е])\s*[).:]\s*(.+?)\s*(\*|\+)?$/);
       const ans = line.match(/^(?:ответ|жауап|answer)\s*[:\-–]\s*([A-HА-Еa-hа-е])/i);
-      const exp = line.match(/^(?:пояснение|работа с ошибками|ошибк[аи]|жиі қате|түсіндірме|решение|шешуі|explanation)\s*[:\-–]\s*(.*)/i);
+      const exp = line.match(/^(?:пояснение|работа с ошибками|ошибк[аи]|жиі қате|түсіндірме|решение|шешімі|шешуі|explanation)\s*[:\-–]\s*(.*)/i);
       const frm = line.match(/^(?:формула|formula)\s*[:\-–]\s*(.*)/i);
-      if (opt && (choices.length > 0 || prompt.length > 0)) {
+      if (opt && !inExplanation && (choices.length > 0 || prompt.length > 0)) {
         if (opt[1] || opt[4]) answer = choices.length;
         choices.push(opt[3]);
-      } else if (ans) {
+      } else if (ans && !inExplanation) {
         const map = "ABCDEFGH";
         const ru = "АБВГДЕ";
         const ch = ans[1].toUpperCase();
         answer = map.includes(ch) ? map.indexOf(ch) : ru.indexOf(ch);
-      } else if (exp) explanation = exp[1];
-      else if (frm) formula = frm[1];
-      else if (choices.length === 0) prompt.push(line);
-      else explanation = explanation ? `${explanation} ${line}` : line;
+      } else if (exp) {
+        inExplanation = true;
+        explanation = exp[1];
+      } else if (frm && !inExplanation) formula = frm[1];
+      else if (choices.length === 0 && !inExplanation) prompt.push(line);
+      else explanation = explanation ? `${explanation}\n${line}` : line;
     }
     if (!prompt.length || choices.length < 2) {
+      const prev = questions[questions.length - 1];
+      if (prev && choices.length === 0 && prompt.length) {
+        const extra = [formula, prompt.join("\n"), explanation].filter(Boolean).join("\n");
+        prev.explanation = prev.explanation ? `${prev.explanation}\n\n${extra}` : extra;
+        return;
+      }
       errors.push(`Блок ${bi + 1}: нужен текст вопроса и минимум 2 варианта`);
       return;
     }
@@ -111,9 +122,13 @@ export function parseQuestions(text: string): { questions: EditQuestion[]; error
       errors.push(`Блок ${bi + 1}: не отмечен правильный ответ (звёздочка * перед вариантом или строка «Ответ: B»)`);
       return;
     }
-    questions.push({ id: uid(), prompt: prompt.join(" "), formula, choices, answer, explanation, level: "mid" });
+    questions.push({ id: uid(), prompt: prompt.join("\n"), formula, choices, answer, explanation: explanation.trim(), level: "mid" });
   });
   return { questions, errors };
+}
+
+function showMathPreview(text: string): boolean {
+  return /[$\\^_]/.test(text) || text.includes("\n") || /^\s*[-*]\s/m.test(text);
 }
 
 export function CourseEditorPage() {
@@ -591,7 +606,9 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
       <div className="ced-quiz-head">
         <h4 className="adm-sub">Тест <small>{lesson.quiz.questions.length} вопр.</small></h4>
       </div>
-      <p className="ced-hint">Ученик увидит этот тест после видео урока (и «ҰБТ есептері», если оно есть). Пока вопросов нет, кнопки теста не будет. «Работа с ошибками» выходит под вариантами после сдачи.</p>
+      <p className="ced-hint">
+        Ученик увидит этот тест после видео урока (и «ҰБТ есептері», если оно есть). Пока вопросов нет, кнопки теста не будет. В условии, вариантах и решении можно писать формулы: {"$x^2$"}, дробь {"$\\frac{a}{b}$"}, отдельной строкой {"$$a:b = c:d$$"}. Список в решении — строка с «- ». Ученик видит решение под вариантами после сдачи.
+      </p>
       <QuizEditor quiz={lesson.quiz} onChange={(quiz) => onChange({ quiz })} emptyHint="Вопросов нет — ученик не увидит тест у этого урока." />
     </div>
   );
@@ -627,42 +644,82 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                 <button type="button" className="danger" aria-label="Удалить вопрос" onClick={() => onChange({ ...quiz, questions: quiz.questions.filter((_, i) => i !== qi) })}><Icon name="delete" size={18} /></button>
               </div>
             </header>
-            <div className="adm-fields">
-              <label className="wide">Текст вопроса<textarea rows={2} value={q.prompt} onChange={(e) => setQ(qi, { prompt: e.target.value })} /></label>
-              <label className="wide">
-                Формула под вопросом (необязательно)
-                <input value={q.formula ?? ""} onChange={(e) => setQ(qi, { formula: e.target.value })} placeholder="x^2 + px + q = 0 или \frac{a}{b}" />
+            <div className="ced-q__grid">
+              <div className="ced-q__task">
+                <label>
+                  Условие задачи
+                  <textarea
+                    rows={4}
+                    value={q.prompt}
+                    onChange={(e) => setQ(qi, { prompt: e.target.value })}
+                    placeholder={"4 725 саны 2, 3, 4, 5, 9, 25 сандарының қайсысына бөлінеді?\n\nили с формулой:\n$x^2 - 5x + 6 = 0$ теңдеуінің түбірлерінің қосындысы?"}
+                  />
+                </label>
+                {showMathPreview(q.prompt) && (
+                  <div className="ced-math-preview">
+                    <small>Как увидит ученик</small>
+                    <Markdown text={q.prompt} plain />
+                  </div>
+                )}
+                <label>
+                  Формула под вопросом (необязательно)
+                  <textarea
+                    rows={2}
+                    value={q.formula ?? ""}
+                    onChange={(e) => setQ(qi, { formula: e.target.value })}
+                    placeholder={"x^2 - 5x + 6 = 0\n\\frac{a}{b} = \\frac{c}{d}"}
+                  />
+                </label>
                 {q.formula?.trim() && (
-                  <span className="ced-formula math-frame">
+                  <div className="quiz-formula">
                     <FormulaOrText text={q.formula} display />
-                  </span>
+                  </div>
+                )}
+                <fieldset className="ced-choices">
+                  <legend>Варианты — отметьте правильный. В варианте тоже можно {"$x^2$"} или {"$\\frac{1}{2}$"}</legend>
+                  {q.choices.map((c, ci) => (
+                    <div key={ci} className="ced-choice-col">
+                      <div className={q.answer === ci ? "ced-choice ok" : "ced-choice"}>
+                        <input type="radio" name={`ans-${q.id}`} checked={q.answer === ci} onChange={() => setQ(qi, { answer: ci })} aria-label={`Правильный ответ ${letters[ci]}`} />
+                        <b>{letters[ci]}</b>
+                        <input value={c} onChange={(e) => setQ(qi, { choices: q.choices.map((x, j) => (j === ci ? e.target.value : x)) })} placeholder={ci === 1 ? "3, 5, 9, 25" : `Вариант ${letters[ci]}`} />
+                        {q.choices.length > 2 && (
+                          <button
+                            type="button"
+                            className="adm-del"
+                            aria-label="Убрать вариант"
+                            onClick={() => setQ(qi, { choices: q.choices.filter((_, j) => j !== ci), answer: q.answer === ci ? 0 : q.answer > ci ? q.answer - 1 : q.answer })}
+                          >
+                            <Icon name="close" size={16} />
+                          </button>
+                        )}
+                      </div>
+                      {showMathPreview(c) && (
+                        <div className="ced-choice__math quiz-math"><ChoiceMath text={c} /></div>
+                      )}
+                    </div>
+                  ))}
+                  {q.choices.length < 6 && (
+                    <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
+                  )}
+                </fieldset>
+              </div>
+              <label className="ced-exp">
+                Решение (ученик увидит под вариантами после сдачи)
+                <textarea
+                  rows={12}
+                  value={q.explanation}
+                  onChange={(e) => setQ(qi, { explanation: e.target.value })}
+                  placeholder={"4 725 санының берілген сандарға бөлінгіштік белгілерін тексереміз.\n- 2-ге бөлінбейді, себебі соңғы цифры 5 (жұп сан емес).\n- 3-ке бөлінеді, себебі цифрларының қосындысы $4 + 7 + 2 + 5 = 18$.\n- 25-ке бөлінеді, себебі соңғы екі цифры $25$."}
+                />
+                {showMathPreview(q.explanation) && (
+                  <div className="ced-math-preview">
+                    <small>Как увидит ученик</small>
+                    <Markdown text={q.explanation} plain />
+                  </div>
                 )}
               </label>
             </div>
-            <fieldset className="ced-choices">
-              <legend>Варианты ответа — отметьте правильный</legend>
-              {q.choices.map((c, ci) => (
-                <div key={ci} className={q.answer === ci ? "ced-choice ok" : "ced-choice"}>
-                  <input type="radio" name={`ans-${q.id}`} checked={q.answer === ci} onChange={() => setQ(qi, { answer: ci })} aria-label={`Правильный ответ ${letters[ci]}`} />
-                  <b>{letters[ci]}</b>
-                  <input value={c} onChange={(e) => setQ(qi, { choices: q.choices.map((x, j) => (j === ci ? e.target.value : x)) })} placeholder={`Вариант ${letters[ci]}`} />
-                  {q.choices.length > 2 && (
-                    <button
-                      type="button"
-                      className="adm-del"
-                      aria-label="Убрать вариант"
-                      onClick={() => setQ(qi, { choices: q.choices.filter((_, j) => j !== ci), answer: q.answer === ci ? 0 : q.answer > ci ? q.answer - 1 : q.answer })}
-                    >
-                      <Icon name="close" size={16} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {q.choices.length < 6 && (
-                <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
-              )}
-            </fieldset>
-            <label className="ced-exp">Работа с ошибками (ученик увидит снизу после сдачи)<textarea rows={3} value={q.explanation} onChange={(e) => setQ(qi, { explanation: e.target.value })} placeholder={"Жиі қате: шеткі мүшені ортаңғымен көбейтеді.\nДұрысы: a \\cdot d = b \\cdot c"} /></label>
           </li>
         ))}
       </ol>
@@ -680,13 +737,13 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
       {bulk && (
         <div className="ced-bulk">
           <p className="ced-hint">
-            Каждый вопрос — отдельный блок через пустую строку. Правильный вариант отметьте звёздочкой или строкой «Ответ: B». Строка «Работа с ошибками:» — текст, который ученик увидит снизу после сдачи.
+            Каждый вопрос — отдельный блок через пустую строку. Правильный вариант отметьте звёздочкой или строкой «Ответ: B». Строка «Формула:» — уравнение под вопросом. «Решение:» — разбор: списки с «- » и формулы {"$x^2$"}, {"$\\frac{a}{b}$"} сохраняются как есть.
           </p>
           <textarea
-            rows={10}
+            rows={14}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder={"x² − 5x + 6 = 0 теңдеуінің түбірлерінің қосындысы?\nA) 5\nB) −5\nC) 6\nD) −6\nОтвет: A\nПояснение: x₁ + x₂ = −p = 5\n\nТүбірлері 2 және 7 болатын теңдеу?\nA) x² + 9x + 14 = 0\n*B) x² − 9x + 14 = 0\nC) x² − 9x − 14 = 0"}
+            placeholder={"4 725 саны 2, 3, 4, 5, 9, 25 сандарының қайсысына бөлінеді?\nA) 2, 4, 9\n*B) 3, 5, 9, 25\nC) 2, 3, 4, 5\nD) 4, 5, 25\nРешение: 4 725 санының бөлінгіштік белгілерін тексереміз.\n- 2-ге бөлінбейді, себебі соңғы цифры 5.\n- 3-ке бөлінеді, себебі $4 + 7 + 2 + 5 = 18$.\n- 25-ке бөлінеді, себебі соңғы екі цифры $25$.\n\n$x^2 - 5x + 6 = 0$ теңдеуінің түбірлерінің қосындысы?\nФормула: x^2 - 5x + 6 = 0\nA) 5\nB) -5\nC) 6\nD) -6\nОтвет: A\nРешение: Виет бойынша $x_1 + x_2 = 5$."}
           />
           {parsed && (
             <p className={parsed.errors.length ? "adm-alert" : "ced-hint ok"}>

@@ -281,3 +281,104 @@ body { background: var(--bg); }
   color: #fff;
 }
 .qz-opts button:disabled { opacity: 1; }
+
+/* Test copy only: formulas sit in the sentence, and the wording stays black. Lessons keep the blue board. */
+.md--quiz,
+.md--quiz h3,
+.md--quiz h4,
+.md--quiz p,
+.md--quiz li,
+.md--quiz b,
+.quiz-formula,
+.qz-q__text,
+.qm-q__text,
+.qz-q__n,
+.qz-opts__t,
+.qm-opts .t,
+.ced-choice__math,
+.qz-errors .md,
+.qz-errors .md h3,
+.qz-errors .md h4,
+.qz-errors .md p,
+.qz-errors .md li {
+  color: #111;
+}
+.md--quiz .katex,
+.md--quiz .katex-display,
+.md--quiz .katex-error,
+.quiz-formula .katex,
+.quiz-formula .katex-display,
+.quiz-formula .katex-error,
+.qz-opts__t .katex,
+.qz-opts__t .katex-error,
+.qm-opts .t .katex,
+.qm-opts .t .katex-error,
+.ced-choice__math .katex,
+.ced-choice__math .katex-error,
+.qm-opts button.on .t,
+.qm-opts button.on .t .katex,
+.qz-q__text em,
+.qm-q__text em {
+  color: #111;
+}
+.quiz-formula {
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+  overflow-x: auto;
+}
+.quiz-formula .katex-display { margin: 0; }
+
+/* Even a lesson-style board inside a test loses the blue frame. */
+.qz-errors .math-frame,
+.qz-q .math-frame,
+.qm-q .math-frame,
+.qz-opts .math-frame,
+.qm-opts .math-frame,
+.ced-q .math-frame,
+.ced-math-preview .math-frame {
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: #111;
+}
+.qz-errors .math-frame--inline,
+.qz-q .math-frame--inline,
+.qm-q .math-frame--inline,
+.qz-opts .math-frame--inline,
+.qm-opts .math-frame--inline,
+.ced-q .math-frame--inline,
+.ced-math-preview .math-frame--inline {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  vertical-align: baseline;
+}
+.qz-errors .math-frame .katex,
+.qz-errors .math-frame .katex-display,
+.qz-errors .math-frame .katex-error,
+.qz-q .math-frame .katex,
+.qz-q .math-frame .katex-display,
+.qz-q .math-frame .katex-error,
+.qm-q .math-frame .katex,
+.qm-q .math-frame .katex-display,
+.qz-opts .math-frame .katex,
+.qm-opts .math-frame .katex,
+.ced-q .math-frame .katex,
+.ced-math-preview .math-frame .katex,
+.qz-errors .md h3,
+.qz-errors .md h4,
+.qz-q__text .md h3,
+.qz-q__text .md h4,
+.qm-q__text .md h3,
+.qm-q__text .md h4,
+.ced-q .md h3,
+.ced-q .md h4 {
+  color: #111;
+}

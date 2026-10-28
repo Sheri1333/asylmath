@@ -4,6 +4,7 @@ export type LessonBlock =
   | { kind: "heading"; level: 2 | 3; text: string }
   | { kind: "paragraph"; text: string }
   | { kind: "list"; ordered: boolean; items: string[] }
+  | { kind: "table"; header: string[]; rows: string[][] }
   | { kind: "board"; tex: string; caption?: string }
   | { kind: "mistake"; text: string };
 
@@ -16,6 +17,8 @@ function cyrWords(s: string): number {
 function looksLikeMath(body: string): boolean {
   const t = body.trim();
   if (!t) return false;
+  // `$...$` inside a sentence stays text; only a line that is nothing but a formula is a board.
+  if (/\$[^$\n]+\$/.test(t) && !/^\$\$[\s\S]+\$\$$/.test(t) && !/^\$[^$\n]+\$$/.test(t)) return false;
   if (/\\[a-zA-Z]+|\\[,;!]/.test(t)) {
     const before = t.split(/\\[a-zA-Z]+|\\[,;!]/)[0];
     return cyrWords(before) < 3;
@@ -44,7 +47,7 @@ function isHeading(line: string): { level: 2 | 3; text: string } | null {
 }
 
 function isBullet(line: string): boolean {
-  return /^\s*[-*]\s+/.test(line) && !/^\s*\*\*/.test(line);
+  return /^\s*(?:[-*]|•|·)\s+/.test(line) && !/^\s*\*\*/.test(line);
 }
 
 function isNoise(line: string): boolean {
@@ -71,6 +74,24 @@ function unwrapDollar(line: string): string {
 
 function isMistake(line: string): boolean {
   return /^(жиі қате|частая ошибка|работа с ошибками)(?=\s|:|$)/i.test(line.trim());
+}
+
+/** Columns split on ` | `, so a formula like |x| stays one cell. */
+function tableCells(line: string): string[] | null {
+  const t = line.trim();
+  if (isBullet(t) || !/ \| /.test(t)) return null;
+  const cells = t.split(" | ").map((cell, i, all) => {
+    let s = cell.trim();
+    if (i === 0) s = s.replace(/^\|\s?/, "");
+    if (i === all.length - 1) s = s.replace(/\s?\|$/, "");
+    return s.trim();
+  });
+  if (cells.length < 2 || cells.every((c) => !c)) return null;
+  return cells;
+}
+
+function isRuleRow(cells: string[]): boolean {
+  return cells.every((c) => /^:?-{3,}:?$/.test(c));
 }
 
 function joinProse(parts: string[]): string {
@@ -106,6 +127,27 @@ export function parseLesson(text: string): LessonBlock[] {
     if (!line || isNoise(line)) {
       i += 1;
       continue;
+    }
+
+    if (tableCells(line)) {
+      const raw: string[][] = [];
+      let j = i;
+      while (j < lines.length) {
+        const cur = lines[j].trim();
+        if (!cur) break;
+        const row = tableCells(cur);
+        if (!row) break;
+        raw.push(row);
+        j += 1;
+      }
+      const data = raw.filter((row) => !isRuleRow(row));
+      if (data.length >= 2 || (data.length === 1 && raw.some(isRuleRow))) {
+        const width = data.reduce((n, row) => Math.max(n, row.length), 0);
+        const pad = (row: string[]) => Array.from({ length: width }, (_, k) => row[k] ?? "");
+        blocks.push({ kind: "table", header: pad(data[0]), rows: data.slice(1).map(pad) });
+        i = j;
+        continue;
+      }
     }
 
     const dollars = dollarBlock(line);
@@ -144,7 +186,7 @@ export function parseLesson(text: string): LessonBlock[] {
     if (isBullet(line)) {
       const items: string[] = [];
       while (i < lines.length && isBullet(lines[i])) {
-        items.push(lines[i].replace(/^\s*[-*]\s+/, "").trim());
+        items.push(lines[i].replace(/^\s*(?:[-*]|•|·)\s+/, "").trim());
         i += 1;
       }
       blocks.push({ kind: "list", ordered: false, items });

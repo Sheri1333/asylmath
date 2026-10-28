@@ -121,7 +121,7 @@ export function fmtMoney(n: number | null): string {
 
 export { parseVideo, VideoFrame, normalizeVideoUrl } from "./video";
 export type { Video } from "./video";
-export { Formula, MathText, FormulaOrText } from "./math";
+export { Formula, MathText, FormulaOrText, ChoiceMath } from "./math";
 
 // ── Lesson text: a small, safe Markdown subset ──
 
@@ -150,7 +150,7 @@ function formatPlain(text: string, keyBase: number): ReactNode[] {
   return out;
 }
 
-function inline(text: string): ReactNode[] {
+function inline(text: string, plain: boolean): ReactNode[] {
   const out: ReactNode[] = [];
   const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
   let last = 0;
@@ -161,7 +161,9 @@ function inline(text: string): ReactNode[] {
     const display = m[1] != null;
     const tex = (display ? m[1] : m[2]).trim();
     out.push(
-      display ? (
+      plain ? (
+        <Formula key={`m${k}`} tex={tex} display={display} />
+      ) : display ? (
         <div key={`m${k}`} className="math-frame">
           <Formula tex={tex} display />
         </div>
@@ -178,7 +180,15 @@ function inline(text: string): ReactNode[] {
   return out;
 }
 
-function Board({ tex, caption }: { tex: string; caption?: string }) {
+function Board({ tex, caption, plain }: { tex: string; caption?: string; plain?: boolean }) {
+  if (plain) {
+    return (
+      <div className="quiz-formula">
+        {caption && <div>{caption}</div>}
+        <Formula tex={tex} display />
+      </div>
+    );
+  }
   return (
     <figure className="math-frame">
       {caption && <figcaption>{caption}</figcaption>}
@@ -187,29 +197,55 @@ function Board({ tex, caption }: { tex: string; caption?: string }) {
   );
 }
 
-export function Markdown({ text }: { text: string }) {
+export function Markdown({ text, plain = false }: { text: string; plain?: boolean }) {
   const blocks = parseLesson(text).map((block, k) => {
-    if (block.kind === "board") return <Board key={k} tex={block.tex} caption={block.caption} />;
+    if (block.kind === "board") return <Board key={k} tex={block.tex} caption={block.caption} plain={plain} />;
     if (block.kind === "heading") {
-      return block.level === 2 ? <h3 key={k}>{inline(block.text)}</h3> : <h4 key={k}>{inline(block.text)}</h4>;
+      return block.level === 2 ? <h3 key={k}>{inline(block.text, plain)}</h3> : <h4 key={k}>{inline(block.text, plain)}</h4>;
     }
     if (block.kind === "list") {
       return (
         <ul key={k}>
           {block.items.map((it, j) => (
-            <li key={j}>{inline(it)}</li>
+            <li key={j}>{inline(it, plain)}</li>
           ))}
         </ul>
+      );
+    }
+    if (block.kind === "table") {
+      return (
+        <div key={k} className="md-table-wrap">
+          <table className="md-table">
+            <thead>
+              <tr>
+                {block.header.map((cell, j) => (
+                  <th key={j} scope="col">{inline(cell, plain)}</th>
+                ))}
+              </tr>
+            </thead>
+            {block.rows.length > 0 && (
+              <tbody>
+                {block.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((cell, j) => (
+                      <td key={j}>{inline(cell, plain)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            )}
+          </table>
+        </div>
       );
     }
     if (block.kind === "mistake") {
       return (
         <aside key={k} className="md-mistake">
-          {inline(block.text)}
+          {inline(block.text, plain)}
         </aside>
       );
     }
-    return <p key={k}>{inline(block.text)}</p>;
+    return <p key={k}>{inline(block.text, plain)}</p>;
   });
-  return <div className="md">{blocks}</div>;
+  return <div className={plain ? "md md--quiz" : "md"}>{blocks}</div>;
 }

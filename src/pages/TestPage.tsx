@@ -4,7 +4,7 @@ import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
-import { FormulaOrText, mainSlug, Markdown, MathText, nextQuiz, useMainCourse } from "../lib/course";
+import { ChoiceMath, FormulaOrText, mainSlug, Markdown, nextQuiz, useMainCourse } from "../lib/course";
 import type { QuizView, ReviewItem } from "../types/course";
 
 function fmt(sec: number) {
@@ -19,8 +19,12 @@ function mathify(text: string): ReactNode {
   return parts.map((p, i) => (i % 2 ? <em key={i}>{p}</em> : <Fragment key={i}>{p}</Fragment>));
 }
 
+function needsRich(text: string) {
+  return /[$\\]/.test(text) || text.includes("\n");
+}
+
 function QText({ text }: { text: string }) {
-  if (text.includes("$") || text.includes("\\")) return <MathText text={text} />;
+  if (needsRich(text)) return <Markdown text={text} plain />;
   return <>{mathify(text)}</>;
 }
 
@@ -200,9 +204,12 @@ export function TestPage() {
         const r = outcome.review[i];
         return (
           <article key={item.id} className="qz-card qz-q qz-after">
-            <p className="qz-q__text">{i + 1}. <QText text={item.prompt} /></p>
+            <div className={`qz-q__text${needsRich(item.prompt) ? " rich" : ""}`}>
+              {needsRich(item.prompt) ? <span className="qz-q__n">{i + 1}.</span> : <>{i + 1}. </>}
+              <QText text={item.prompt} />
+            </div>
             {item.formula && (
-              <div className="math-frame"><b><FormulaOrText text={item.formula} display /></b></div>
+              <div className="quiz-formula"><FormulaOrText text={item.formula} display /></div>
             )}
             <div className="qz-opts">
               {item.choices.map((c, ci) => {
@@ -211,7 +218,7 @@ export function TestPage() {
                 return (
                   <button key={ci} type="button" disabled className={good ? "good" : bad ? "bad" : ""}>
                     <span className="qz-opts__l">{letters[ci]}</span>
-                    <span className="qz-opts__t"><FormulaOrText text={c} /></span>
+                    <span className="qz-opts__t"><ChoiceMath text={c} /></span>
                     <span className="qz-opts__r">{good ? <Icon name="check" size={16} /> : bad ? <Icon name="close" size={16} /> : null}</span>
                   </button>
                 );
@@ -220,7 +227,7 @@ export function TestPage() {
             {r?.explanation && (
               <div className="qz-errors">
                 <strong>Работа с ошибками</strong>
-                <Markdown text={r.explanation} />
+                <Markdown text={r.explanation} plain />
               </div>
             )}
           </article>
@@ -263,18 +270,13 @@ export function TestPage() {
               </div>
               <i><s style={{ width: `${pct}%` }} /></i>
             </div>
-            {q.formula && (
-              <div className="qm-banner">
-                <div><small>Формула</small><b><FormulaOrText text={q.formula} /></b></div>
-                <span><Icon name="calculate" size={22} /></span>
-              </div>
-            )}
             <article className="qm-q">
               <header>
                 <span>Сұрақ #{index + 1}</span>
                 <small><Icon name="star" size={16} color="var(--orange)" />1 ұпай</small>
               </header>
-              <p className="qm-q__text"><QText text={q.prompt} /></p>
+              <div className={`qm-q__text${needsRich(q.prompt) ? " rich" : ""}`}><QText text={q.prompt} /></div>
+              {q.formula && <div className="quiz-formula"><FormulaOrText text={q.formula} display /></div>}
               <p className="qm-q__hint">Бір дұрыс жауапты таңдаңыз</p>
               <div className="qm-opts">
                 {q.choices.map((c, i) => {
@@ -282,7 +284,7 @@ export function TestPage() {
                   return (
                     <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} aria-label={`${letters[i]}) ${c}`} onClick={() => pick(i)}>
                       <span className="l">{letters[i]}</span>
-                      <span className="t"><FormulaOrText text={c} /></span>
+                      <span className="t"><ChoiceMath text={c} /></span>
                       <Icon name={on ? "check_circle" : "radio_button_unchecked"} size={on ? 22 : 20} />
                     </button>
                   );
@@ -361,9 +363,9 @@ export function TestPage() {
                     <Icon name="bookmark" size={16} fill={flags.includes(index)} />Белгілеу
                   </button>
                 </header>
-                <p className="qz-q__text"><QText text={q.prompt} /></p>
+                <div className={`qz-q__text${needsRich(q.prompt) ? " rich" : ""}`}><QText text={q.prompt} /></div>
                 {q.formula && (
-                  <div className="math-frame"><b><FormulaOrText text={q.formula} display /></b></div>
+                  <div className="quiz-formula"><FormulaOrText text={q.formula} display /></div>
                 )}
                 <div className="qz-opts">
                   {q.choices.map((c, i) => {
@@ -371,7 +373,7 @@ export function TestPage() {
                     return (
                       <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} aria-label={`${letters[i]}) ${c}`} onClick={() => pick(i)}>
                         <span className="qz-opts__l">{letters[i]}</span>
-                        <span className="qz-opts__t"><FormulaOrText text={c} /></span>
+                        <span className="qz-opts__t"><ChoiceMath text={c} /></span>
                         <span className="qz-opts__r">{on && <Icon name="check" size={16} />}</span>
                       </button>
                     );

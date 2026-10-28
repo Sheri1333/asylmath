@@ -79,6 +79,33 @@ a.prog__row:hover { background: var(--lav); }
 .md { display: flex; flex-direction: column; gap: 12px; font: 400 16px/26px var(--text); color: var(--ink); }
 .md h3 { font: 700 20px/28px var(--head); color: var(--ink); margin-top: 4px; }
 .md h4 { font: 700 17px/24px var(--head); color: var(--navy); }
+.qz-errors .md,
+.qz-errors .md h3,
+.qz-errors .md h4,
+.qz-errors .md p,
+.qz-errors .md li,
+.qz-q .md,
+.qz-q .md h3,
+.qz-q .md h4,
+.qz-q .md p,
+.qz-q .md li,
+.qm-q .md,
+.qm-q .md h3,
+.qm-q .md h4,
+.qm-q .md p,
+.qm-q .md li,
+.ced-q .md,
+.ced-q .md h3,
+.ced-q .md h4,
+.ced-q .md p,
+.ced-q .md li,
+.md--quiz,
+.md--quiz h3,
+.md--quiz h4,
+.md--quiz p,
+.md--quiz li {
+  color: #111;
+}
 .md ul, .md ol { padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
 .md ul { list-style: disc; }
 .md ol { list-style: decimal; }
@@ -95,13 +122,17 @@ a.prog__row:hover { background: var(--lav); }
 .math--block { display: block; overflow-x: auto; text-align: center; }
 .math-frame {
   display: block;
-  margin: 4px 0;
+  margin: 8px 0;
+  overflow-x: auto;
+  text-align: center;
+  color: #111;
+}
+.les-md .math-frame,
+.prog__desc .math-frame {
   padding: 14px 18px;
   border: 1.5px solid #9db6ff;
   border-radius: 14px;
   background: #e7efff;
-  overflow-x: auto;
-  text-align: center;
 }
 .math-frame figcaption {
   margin-bottom: 8px;
@@ -111,10 +142,31 @@ a.prog__row:hover { background: var(--lav); }
   color: #3d62b5;
   text-align: left;
 }
+.les-md .math-frame .katex,
+.les-md .math-frame .katex-display,
+.prog__desc .math-frame .katex,
+.prog__desc .math-frame .katex-display { color: #123a86; }
 .math-frame .katex,
-.math-frame .katex-display { color: #123a86; }
+.math-frame .katex-display,
+.qz-errors .katex,
+.qz-q .katex,
+.qm-q .katex,
+.qz-opts .katex,
+.qm-opts .katex,
+.ced-q .katex,
+.md--quiz .katex,
+.md--quiz .katex-display { color: #111; }
 .math-frame .katex-display { margin: 0; }
 .math-frame--inline {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  vertical-align: baseline;
+  background: none;
+  border: 0;
+}
+.les-md .math-frame--inline,
+.prog__desc .math-frame--inline {
   display: inline-block;
   margin: 0 3px;
   padding: 1px 8px;
@@ -140,7 +192,14 @@ a.prog__row:hover { background: var(--lav); }
 .qz-errors .md { gap: 8px; }
 .prog__desc .md { color: var(--ink); font-size: 15px; line-height: 24px; }
 .qz-eq .katex, .qm-banner .katex, .ced-formula .katex { font-size: 1.2em; }
-.ced-formula { display: block; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--soft); overflow-x: auto; }
+.ced-formula { display: block; margin-top: 0; padding: 10px 12px; border-radius: 12px; background: #fff; overflow-x: auto; }
+.qz-q__text.rich, .qm-q__text.rich { display: flex; flex-direction: column; gap: 8px; }
+.qz-q__text .md, .qm-q__text .md { font: inherit; color: inherit; gap: 8px; }
+.qz-q__text .md p, .qm-q__text .md p { font: inherit; color: inherit; }
+.qz-q__n { font: 700 16px/24px var(--head); color: var(--navy); }
+.qz-opts__t, .qm-opts .t { min-width: 0; overflow-x: auto; }
+.qm-banner .katex, .qm-banner .katex-display { color: #fff; }
+.qm-banner .katex-display { margin: 0; }
 .les-md { padding: 4px 0 0; background: none; box-shadow: none; border-radius: 0; }
 .les-head__chips .free { background: var(--mint); color: #00236f; font-weight: 600; }
 .les-bar__crumbs a { color: var(--muted); }
@@ -237,15 +296,23 @@ a.prog__row:hover { background: var(--lav); }
 .ced-q header b { font: 700 14px/20px var(--head); color: var(--navy); }
 .ced-q header select { border: 1px solid var(--lav); border-radius: 8px; padding: 4px 8px; background: #fff; font: 500 13px/18px var(--text); }
 .ced-q header .adm-acts { margin-left: auto; }
+.ced-q__grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr); gap: 14px; align-items: start; }
+.ced-q__task { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ced-q__task > label, .ced-exp { display: flex; flex-direction: column; gap: 6px; font: 600 12px/16px var(--text); color: var(--muted); }
+.ced-q__task textarea, .ced-exp textarea { border: 1px solid var(--lav); border-radius: 12px; padding: 8px 12px; background: #fff; font: 400 14px/20px var(--text); color: var(--ink); resize: vertical; }
+.ced-q__task textarea:focus, .ced-exp textarea:focus { border-color: var(--navy); box-shadow: 0 0 0 3px var(--lav3); outline: none; }
+.ced-math-preview { padding: 10px 12px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px var(--lav); }
+.ced-math-preview > small { display: block; margin-bottom: 6px; font: 700 11px/16px var(--text); letter-spacing: 0.4px; text-transform: uppercase; color: var(--navy); }
+.ced-math-preview .md { font-size: 15px; line-height: 22px; gap: 8px; }
 .ced-choices { margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px; }
 .ced-choices legend { margin-bottom: 6px; font: 600 12px/16px var(--text); color: var(--muted); }
+.ced-choice-col { display: flex; flex-direction: column; gap: 2px; }
 .ced-choice { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 10px; background: #fff; border: 1px solid transparent; }
 .ced-choice.ok { border-color: #1e6fff; background: rgba(214, 227, 255, 0.25); }
 .ced-choice input[type="radio"] { width: 18px; height: 18px; accent-color: var(--teal); flex-shrink: 0; }
 .ced-choice b { width: 20px; font: 700 13px/1 var(--head); color: var(--navy); }
 .ced-choice input:not([type]) { flex: 1; min-width: 0; border: 0; padding: 6px 4px; background: transparent; font: 500 14px/20px var(--text); color: var(--ink); outline: none; }
-.ced-exp { display: flex; flex-direction: column; gap: 6px; font: 600 12px/16px var(--text); color: var(--muted); }
-.ced-exp textarea { border: 1px solid var(--lav); border-radius: 12px; padding: 8px 12px; background: #fff; font: 400 14px/20px var(--text); color: var(--ink); resize: vertical; }
+.ced-choice__math { padding: 2px 8px 6px 46px; overflow-x: auto; font: 500 15px/22px var(--text); color: var(--navy); }
 .ced-quiz__add { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .ced-bulk { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: var(--soft2); }
 .ced-bulk textarea { border: 1px solid var(--lav); border-radius: 12px; padding: 12px 14px; background: #fff; font: 400 14px/22px Consolas, "Liberation Mono", monospace; resize: vertical; }
@@ -261,6 +328,7 @@ a.prog__row:hover { background: var(--lav); }
   .adm-grant { grid-template-columns: 1fr; }
   .ced-bar { top: 72px; }
   .ced-quiz__add { grid-template-columns: 1fr; }
+  .ced-q__grid { grid-template-columns: 1fr; }
   .ced-float { right: 16px; left: 16px; bottom: 76px; justify-content: space-between; }
   .player--real, .lm-player--real { aspect-ratio: 16 / 9; }
 }
