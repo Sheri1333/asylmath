@@ -391,3 +391,10 @@ a.prog__row:hover { background: var(--lav); }
   .chart-path { stroke-dashoffset: 0; }
   .chart--on .chart-path, .chart--on .chart-bar, .chart--on .chart-dot, .chart .chart-bar, .chart .chart-dot { animation: none !important; transform: none; opacity: 1; }
 }
+
+/* ── Photos in lesson text and solutions ── */
+.lesson-photo { margin: 18px 0; }
+.lesson-photo img { display: block; width: 100%; height: auto; border-radius: 18px; box-shadow: 0 0 0 1px var(--line); background: #fff; }
+.lesson-photo figcaption { margin-top: 8px; text-align: center; font: 500 13.5px/1.4 var(--text); color: var(--muted); }
+.ced-photo { display: inline-flex; flex-direction: column; gap: 4px; }
+.ced-photo small { max-width: 320px; }

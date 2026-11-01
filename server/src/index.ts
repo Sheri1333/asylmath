@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import cors from "cors";
 import express from "express";
-import { connectDb, isDbReady } from "./db.js";
+import { GridFSBucket } from "mongodb";
+import { connectDb, getDb, isDbReady, toObjectId } from "./db.js";
 import { authRouter } from "./routes/auth.js";
 import { coursesRouter } from "./routes/courses.js";
 import { enrollmentsRouter } from "./routes/enrollments.js";
@@ -41,6 +42,28 @@ app.options(/.*/, corsMw);
 app.use(express.json({ limit: "10mb" }));
 
 // Uploaded lesson materials. Served before the DB check so files work while Mongo reconnects.
+// Images and files stored in the MongoDB bucket. Public by design (lesson pictures), but served
+// with nosniff and a sandbox policy so an uploaded SVG cannot run script on our origin.
+app.get("/api/files/g/:id", async (req, res) => {
+  const id = toObjectId(String(req.params.id));
+  if (!id || !isDbReady()) {
+    res.status(404).json({ error: "Файл не найден" });
+    return;
+  }
+  const bucket = new GridFSBucket(getDb(), { bucketName: "files" });
+  const [meta] = await bucket.find({ _id: id }).toArray();
+  if (!meta) {
+    res.status(404).json({ error: "Файл не найден" });
+    return;
+  }
+  res.setHeader("Content-Type", String(meta.metadata?.contentType ?? "application/octet-stream"));
+  res.setHeader("Content-Length", String(meta.length));
+  res.setHeader("Cache-Control", "public, max-age=604800");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Content-Security-Policy", "sandbox");
+  bucket.openDownloadStream(id).on("error", () => res.destroy()).pipe(res);
+});
+
 app.use("/api/files", express.static(UPLOAD_DIR, { maxAge: "7d", fallthrough: false, dotfiles: "deny" }));
 
 // Slow down password guessing: 20 attempts per IP per 15 minutes on login/register.

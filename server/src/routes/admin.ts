@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import express, { Router } from "express";
-import { ObjectId } from "mongodb";
-import { courses, enrollments, toObjectId, users, type CourseDoc } from "../db.js";
+import { GridFSBucket, ObjectId } from "mongodb";
+import { courses, enrollments, getDb, toObjectId, users, type CourseDoc } from "../db.js";
 import { adminRequired, type AuthedRequest } from "../auth.js";
 import { cleanSections, courseSections, enrollmentView, publicCourse } from "../course.js";
 
@@ -229,7 +229,7 @@ adminRouter.delete("/enrollments/:id", async (req, res) => {
 adminRouter.post(
   "/uploads",
   express.raw({ type: () => true, limit: MAX_UPLOAD }),
-  (req, res) => {
+  async (req, res) => {
     const original = decodeURIComponent(String(req.headers["x-filename"] ?? "file"));
     const ext = path.extname(original).toLowerCase();
     if (!ALLOWED.has(ext)) {
@@ -241,10 +241,15 @@ adminRouter.post(
       res.status(400).json({ error: "Пустой файл" });
       return;
     }
-    mkdirSync(UPLOAD_DIR, { recursive: true });
-    const name = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}${ext}`;
-    writeFileSync(path.join(UPLOAD_DIR, name), body);
-    res.status(201).json({ ok: true, file: { name: original.slice(0, 200), url: `/api/files/${name}`, size: body.length } });
+    // Stored in MongoDB (GridFS bucket "files"), so uploads survive redeploys.
+    const bucket = new GridFSBucket(getDb(), { bucketName: "files" });
+    const contentType = req.headers["content-type"] || "application/octet-stream";
+    const id = await new Promise<ObjectId>((resolve, reject) => {
+      const up = bucket.openUploadStream(original.slice(0, 200), { metadata: { contentType, size: body.length } });
+      up.on("error", reject).on("finish", () => resolve(up.id as ObjectId));
+      up.end(body);
+    });
+    res.status(201).json({ ok: true, file: { name: original.slice(0, 200), url: `/api/files/g/${id.toHexString()}`, size: body.length } });
   },
 );
 

@@ -134,6 +134,35 @@ function showMathPreview(text: string): boolean {
   return /[$\\^_]/.test(text) || text.includes("\n") || /^\s*[-*]\s/m.test(text);
 }
 
+/** Attach a photo: uploads to the MongoDB bucket and drops an image line into the text. */
+function PhotoAttach({ onInsert }: { onInsert: (markdown: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  async function pick(files: FileList | null) {
+    const f = files?.[0];
+    if (!f) return;
+    setBusy(true);
+    setErr("");
+    try {
+      const m = await api.adminUpload(f);
+      onInsert(`![](${m.url})`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Не удалось загрузить фото");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <span className="ced-photo">
+      <label className="qz-prev ced-upload">
+        <Icon name="photo_camera" size={18} />{busy ? "Загрузка…" : "Прикрепить фото"}
+        <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => { void pick(e.target.files); e.target.value = ""; }} />
+      </label>
+      {err && <small className="adm-alert">{err}</small>}
+    </span>
+  );
+}
+
 export function CourseEditorPage() {
   const { id = "new" } = useParams();
   const navigate = useNavigate();
@@ -579,6 +608,10 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
               <button type="button" className="qz-prev" onClick={() => onChange({ content: `${lesson.content.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
                 <Icon name="monitoring" size={18} />Вставить график
               </button>
+              <PhotoAttach onInsert={(md) => onChange({ content: `${lesson.content.trimEnd()}
+
+${md}
+` })} />
               <small className="ced-hint">Функция: <code>fn: x^2 - 4</code>. Точки или столбцы: <code>x:</code> и <code>y:</code> через запятую, <code>type: bar</code> для столбцов.</small>
             </div>
             <small className="ced-hint">Вставляйте сценарий как есть. Строка «Тақтада:» и формулы (\frac, a : b = c : d, $x^2$) ученик видит в голубой рамке. «2. Название» — подзаголовок, «- » — список, **жирный**. Таблица: строки подряд, столбцы через « | », первая строка — шапка. В ячейке формула пишется как $x^2$, модуль |x| можно оставлять как есть.</small>          </>
@@ -723,6 +756,10 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                 <button type="button" className="qz-prev ced-chart-insert" onClick={() => setQ(qi, { explanation: `${q.explanation.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
                   <Icon name="monitoring" size={18} />Вставить график
                 </button>
+                <PhotoAttach onInsert={(md) => setQ(qi, { explanation: `${q.explanation.trimEnd()}
+
+${md}
+` })} />
                 {showMathPreview(q.explanation) && (
                   <div className="ced-math-preview">
                     <small>Как увидит ученик</small>

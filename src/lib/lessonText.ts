@@ -7,7 +7,8 @@ export type LessonBlock =
   | { kind: "table"; header: string[]; rows: string[][] }
   | { kind: "board"; tex: string; caption?: string }
   | { kind: "mistake"; text: string }
-  | { kind: "chart"; raw: string };
+  | { kind: "chart"; raw: string }
+  | { kind: "image"; src: string; caption: string };
 
 const CYR = /[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі]/;
 
@@ -162,6 +163,13 @@ export function parseLesson(text: string): LessonBlock[] {
         i = j;
         continue;
       }
+    }
+
+    const photo = line.match(/^!\[([^\]]*)\]\((\S+?)\)$/);
+    if (photo) {
+      blocks.push({ kind: "image", src: photo[2], caption: photo[1].trim() });
+      i += 1;
+      continue;
     }
 
     const dollars = dollarBlock(line);
