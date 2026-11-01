@@ -163,6 +163,33 @@ function PhotoAttach({ onInsert }: { onInsert: (markdown: string) => void }) {
   );
 }
 
+/** Photos already in the text: a thumbnail for each image line, with a remove button. */
+function PhotoList({ text, onChange }: { text: string; onChange: (next: string) => void }) {
+  const lines = text.split("\n");
+  const photos = lines.map((l, i) => ({ i, m: l.trim().match(/^!\[([^\]]*)\]\((\S+?)\)$/) })).filter((p) => p.m);
+  if (photos.length === 0) return null;
+  return (
+    <ul className="ced-photos">
+      {photos.map(({ i, m }) => (
+        <li key={i}>
+          <img src={m![2]} alt="" />
+          <button
+            type="button"
+            className="ced-photos__del"
+            aria-label="Удалить фото"
+            onClick={() => {
+              if (!confirm("Удалить фото из текста?")) return;
+              onChange(lines.filter((_, j) => j !== i).join("\n"));
+            }}
+          >
+            <Icon name="delete" size={16} />Удалить
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function CourseEditorPage() {
   const { id = "new" } = useParams();
   const navigate = useNavigate();
@@ -608,6 +635,7 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
               <button type="button" className="qz-prev" onClick={() => onChange({ content: `${lesson.content.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
                 <Icon name="monitoring" size={18} />Вставить график
               </button>
+              <PhotoList text={lesson.content} onChange={(t) => onChange({ content: t })} />
               <PhotoAttach onInsert={(md) => onChange({ content: `${lesson.content.trimEnd()}
 
 ${md}
@@ -756,6 +784,7 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                 <button type="button" className="qz-prev ced-chart-insert" onClick={() => setQ(qi, { explanation: `${q.explanation.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
                   <Icon name="monitoring" size={18} />Вставить график
                 </button>
+                <PhotoList text={q.explanation} onChange={(t) => setQ(qi, { explanation: t })} />
                 <PhotoAttach onInsert={(md) => setQ(qi, { explanation: `${q.explanation.trimEnd()}
 
 ${md}
