@@ -7,6 +7,32 @@ import { courses, enrollments, getDb, toObjectId, users, type CourseDoc } from "
 import { adminRequired, type AuthedRequest } from "../auth.js";
 import { cleanSections, courseSections, enrollmentView, publicCourse } from "../course.js";
 
+// ── Stored photos: ids referenced in course text, and cleanup of unused files ───────────────
+
+const FILE_REF = /api\/files\/g\/([0-9a-f]{24})/g;
+
+/** Every stored-file id mentioned anywhere in the given course sections. */
+function fileIds(value: unknown): Set<string> {
+  return new Set([...JSON.stringify(value ?? null).matchAll(FILE_REF)].map((m) => m[1]));
+}
+
+/** Deletes stored files that no course uses any more. Only the given candidates, plus orphans older than an hour. */
+async function cleanupFiles(candidates: string[] = []): Promise<void> {
+  try {
+    const bucket = new GridFSBucket(getDb(), { bucketName: "files" });
+    const used = fileIds((await courses().find({}, { projection: { sections: 1 } }).toArray()).map((c) => c.sections));
+    const orphanBefore = new Date(Date.now() - 60 * 60 * 1000);
+    const stale = await bucket.find({ uploadDate: { $lt: orphanBefore } }, { projection: { _id: 1 } }).toArray();
+    const ids = new Set([...candidates, ...stale.map((f) => f._id.toHexString())]);
+    for (const id of ids) {
+      if (used.has(id) || !ObjectId.isValid(id)) continue;
+      await bucket.delete(new ObjectId(id)).catch(() => undefined);
+    }
+  } catch {
+    /* cleanup must never fail a save */
+  }
+}
+
 export const adminRouter = Router();
 
 adminRouter.use(adminRequired);
@@ -103,6 +129,7 @@ adminRouter.post("/courses", async (req: AuthedRequest, res) => {
   const now = new Date();
   const doc: CourseDoc = { _id: randomUUID(), ...input, createdAt: now, updatedAt: now };
   await courses().insertOne(doc);
+  await cleanupFiles();
   await ensureSingleFeatured(doc._id, doc.featured ?? false);
   res.status(201).json({ ok: true, course: fullCourse(doc) });
 });
@@ -126,7 +153,9 @@ adminRouter.put("/courses/:id", async (req, res) => {
     res.status(409).json({ error: `Адрес «${input.slug}» уже занят другим курсом` });
     return;
   }
+  const removed = [...fileIds(existing.sections)].filter((x) => !fileIds(input.sections).has(x));
   await courses().updateOne({ _id: id }, { $set: { ...input, updatedAt: new Date() }, $unset: { lessons: "" } });
+  await cleanupFiles(removed);
   await ensureSingleFeatured(id, input.featured);
   const row = await courses().findOne({ _id: id });
   res.json({ ok: true, course: fullCourse(row!) });
