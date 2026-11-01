@@ -362,3 +362,32 @@ a.prog__row:hover { background: var(--lav); }
 .ced-video small { font: 400 12px/17px var(--text); color: var(--muted); }
 .ced-video a { font: 600 12px/17px var(--text); color: var(--teal); text-decoration: underline; }
 @media (max-width: 640px) { .ced-video { flex-direction: column; } .ced-video img { width: 100%; } }
+
+/* ── Charts: drawn on scroll (see lib/chart.tsx) ── */
+.chart-figure { margin: 18px 0; padding: 18px 18px 14px; border-radius: 22px; background: #fff; box-shadow: 0 0 0 1px var(--line); }
+.chart-figure figcaption { margin-top: 6px; text-align: center; font: 600 14px/20px var(--text); color: var(--ink); }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart-grid { stroke: #e8eef8; stroke-width: 1; }
+.chart-zero { stroke: #9aa9c4; stroke-width: 1.4; }
+.chart-axis { stroke: #5b6b86; stroke-width: 1.6; }
+.chart-tick { font: 600 12.5px var(--text); fill: #54637d; }
+.chart-val { font: 700 13px var(--text); fill: #00236f; }
+.chart-label { font: 700 13px var(--text); fill: #00236f; }
+.chart-error { padding: 12px 14px; border-radius: 14px; background: var(--pink); color: #93000a; font: 600 14px/20px var(--text); }
+
+.chart-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.chart--on .chart-path { animation: chart-draw 1.8s cubic-bezier(0.45, 0.05, 0.25, 1) forwards; }
+@keyframes chart-draw { to { stroke-dashoffset: 0; } }
+
+.chart-bar { transform: scaleY(0); }
+.chart--on .chart-bar { animation: chart-grow 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0s) forwards; }
+@keyframes chart-grow { to { transform: scaleY(1); } }
+
+.chart-dot { opacity: 0; }
+.chart--on .chart-dot { animation: chart-fade 0.5s ease var(--d, 0s) forwards; }
+@keyframes chart-fade { to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-path { stroke-dashoffset: 0; }
+  .chart--on .chart-path, .chart--on .chart-bar, .chart--on .chart-dot, .chart .chart-bar, .chart .chart-dot { animation: none !important; transform: none; opacity: 1; }
+}

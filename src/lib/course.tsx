@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "../api/client";
 import { parseLesson } from "./lessonText";
+import { Chart } from "./chart";
 import { Formula } from "./math";
 import type { CourseView, OutlineLesson, OutlineSection, QuizResultSummary } from "../types/course";
 
@@ -200,6 +201,7 @@ function Board({ tex, caption, plain }: { tex: string; caption?: string; plain?:
 export function Markdown({ text, plain = false }: { text: string; plain?: boolean }) {
   const blocks = parseLesson(text).map((block, k) => {
     if (block.kind === "board") return <Board key={k} tex={block.tex} caption={block.caption} plain={plain} />;
+    if (block.kind === "chart") return <Chart key={k} raw={block.raw} />;
     if (block.kind === "heading") {
       return block.level === 2 ? <h3 key={k}>{inline(block.text, plain)}</h3> : <h4 key={k}>{inline(block.text, plain)}</h4>;
     }

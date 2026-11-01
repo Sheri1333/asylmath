@@ -6,7 +6,8 @@ export type LessonBlock =
   | { kind: "list"; ordered: boolean; items: string[] }
   | { kind: "table"; header: string[]; rows: string[][] }
   | { kind: "board"; tex: string; caption?: string }
-  | { kind: "mistake"; text: string };
+  | { kind: "mistake"; text: string }
+  | { kind: "chart"; raw: string };
 
 const CYR = /[А-Яа-яЁёӘәҒғҚқҢңӨөҰұҮүҺһІі]/;
 
@@ -126,6 +127,19 @@ export function parseLesson(text: string): LessonBlock[] {
     const line = lines[i].trim();
     if (!line || isNoise(line)) {
       i += 1;
+      continue;
+    }
+
+    const fence = line.match(/^```\s*(график|chart)\s*$/i);
+    if (fence) {
+      const buf: string[] = [];
+      i += 1;
+      while (i < lines.length && !/^```\s*$/.test(lines[i].trim())) {
+        buf.push(lines[i]);
+        i += 1;
+      }
+      i += 1;
+      blocks.push({ kind: "chart", raw: buf.join("\n") });
       continue;
     }
 

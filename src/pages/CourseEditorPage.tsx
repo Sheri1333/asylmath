@@ -5,6 +5,9 @@ import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { ChoiceMath, fmtSize, FormulaOrText, Markdown, normalizeVideoUrl, parseVideo, VideoFrame } from "../lib/course";
 import { uid } from "../lib/id";
+
+/** Chart block a teacher can drop in with one click. */
+const CHART_TEMPLATE = "```график\ntitle: Парабола\nfn: x^2 - 4\nfrom: -4\nto: 4\nxlabel: x\nylabel: y\n```";
 import type { EditCourse, EditLesson, EditQuestion, EditQuiz, EditSection, QuestionLevel } from "../types/course";
 
 const letters = "ABCDEFGH";
@@ -572,8 +575,13 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
         ) : (
           <>
             <textarea className="ced-md" rows={14} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"Айтатыным: «Екі қатынас тең болса, бұл пропорция.»\nТақтада:\na : b = c : d \\quad \\Longleftrightarrow \\quad \\frac{a}{b} = \\frac{c}{d}\n\n2. Пропорция (~4 мин)\nЖиі қате: шеткі мүшені ортаңғымен көбейту."} />
-            <small className="ced-hint">Вставляйте сценарий как есть. Строка «Тақтада:» и формулы (\frac, a : b = c : d, $x^2$) ученик видит в голубой рамке. «2. Название» — подзаголовок, «- » — список, **жирный**. Таблица: строки подряд, столбцы через « | », первая строка — шапка. В ячейке формула пишется как $x^2$, модуль |x| можно оставлять как есть.</small>
-          </>
+            <div className="ced-chart-tools">
+              <button type="button" className="qz-prev" onClick={() => onChange({ content: `${lesson.content.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
+                <Icon name="monitoring" size={18} />Вставить график
+              </button>
+              <small className="ced-hint">Функция: <code>fn: x^2 - 4</code>. Точки или столбцы: <code>x:</code> и <code>y:</code> через запятую, <code>type: bar</code> для столбцов.</small>
+            </div>
+            <small className="ced-hint">Вставляйте сценарий как есть. Строка «Тақтада:» и формулы (\frac, a : b = c : d, $x^2$) ученик видит в голубой рамке. «2. Название» — подзаголовок, «- » — список, **жирный**. Таблица: строки подряд, столбцы через « | », первая строка — шапка. В ячейке формула пишется как $x^2$, модуль |x| можно оставлять как есть.</small>          </>
         )}
       </div>
 

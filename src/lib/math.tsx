@@ -36,7 +36,7 @@ export function FormulaOrText({ text, display = false }: { text: string; display
   const raw = text.trim();
   if (!raw) return null;
   const block = raw.match(/^\$\$([\s\S]+)\$\$$/);
-  const inline = !block && raw.match(/^\$([\s\S]+)\$$/);
+  const inline = block ? null : raw.match(/^\$([\s\S]+)\$$/);
   let tex = (block?.[1] ?? inline?.[1] ?? raw).trim();
   const asDisplay = display || Boolean(block);
   if (asDisplay && tex.includes("\n") && /[\\^_=]/.test(tex) && !/\\\\|\\begin\{/.test(tex)) {
