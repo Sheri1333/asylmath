@@ -720,6 +720,9 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                   onChange={(e) => setQ(qi, { explanation: e.target.value })}
                   placeholder={"4 725 санының берілген сандарға бөлінгіштік белгілерін тексереміз.\n- 2-ге бөлінбейді, себебі соңғы цифры 5 (жұп сан емес).\n- 3-ке бөлінеді, себебі цифрларының қосындысы $4 + 7 + 2 + 5 = 18$.\n- 25-ке бөлінеді, себебі соңғы екі цифры $25$."}
                 />
+                <button type="button" className="qz-prev ced-chart-insert" onClick={() => setQ(qi, { explanation: `${q.explanation.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
+                  <Icon name="monitoring" size={18} />Вставить график
+                </button>
                 {showMathPreview(q.explanation) && (
                   <div className="ced-math-preview">
                     <small>Как увидит ученик</small>

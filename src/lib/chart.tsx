@@ -21,7 +21,19 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 
 export type ChartSpec =
   | { kind: "fn"; title: string; fn: string; from: number; to: number; xlabel: string; ylabel: string }
-  | { kind: "line" | "bar"; title: string; x: string[]; y: number[]; xlabel: string; ylabel: string };
+  | { kind: "line" | "bar"; title: string; x: string[]; y: number[]; xlabel: string; ylabel: string }
+  | { kind: "shape"; title: string; prism: boolean; pts: Array<[number, number]>; h: number; labels: string[] };
+
+/** "0,0; 4,0; 2,3" → [[0,0],[4,0],[2,3]] */
+function parsePoints(s: string): Array<[number, number]> | null {
+  const out: Array<[number, number]> = [];
+  for (const pair of s.split(";")) {
+    const [x, y] = pair.split(",").map((v) => Number(v.trim()));
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    out.push([x, y]);
+  }
+  return out;
+}
 
 export function parseChart(raw: string): ChartSpec | null {
   const map: Record<string, string> = {};
@@ -32,6 +44,18 @@ export function parseChart(raw: string): ChartSpec | null {
   const title = map.title ?? map["тақырып"] ?? "";
   const xlabel = map.xlabel ?? "";
   const ylabel = map.ylabel ?? "";
+  // Figures: triangle / polygon from points, prism from a base and a height.
+  const figure = (map.shape ?? "").toLowerCase();
+  const base = map.base ?? map.points;
+  if (base) {
+    const pts = parsePoints(base);
+    if (!pts || pts.length < 3) return null;
+    const prism = /prism|призма|призм/.test(figure) || (figure === "" && map.height !== undefined);
+    const h = Number(map.height ?? 0);
+    if (prism && (!Number.isFinite(h) || h <= 0)) return null;
+    const labels = (map.labels ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    return { kind: "shape", title, prism, pts, h, labels };
+  }
   if (map.fn) {
     const from = Number(map.from ?? -5);
     const to = Number(map.to ?? 5);
@@ -167,6 +191,58 @@ const PR = 24;
 const PT = 24;
 const PB = 48;
 
+/** Triangle / polygon / prism. A prism is drawn in oblique projection: base, a copy shifted by the height, and the edges between. */
+function renderShape(spec: Extract<ChartSpec, { kind: "shape" }>): { body: ReactNode; caption: string } {
+  const off = spec.prism ? spec.h * 0.5 : 0;
+  const base = spec.pts;
+  const top = spec.prism ? base.map(([x, y]) => [x + off, y + off] as [number, number]) : [];
+  const all = [...base, ...top];
+  const minX = Math.min(...all.map((p) => p[0])), maxX = Math.max(...all.map((p) => p[0]));
+  const minY = Math.min(...all.map((p) => p[1])), maxY = Math.max(...all.map((p) => p[1]));
+  const pad = 56;
+  const sc = Math.min((W - 2 * pad) / (maxX - minX || 1), (H - 2 * pad) / (maxY - minY || 1));
+  const ox = (W - (maxX - minX) * sc) / 2;
+  const oy = (H - (maxY - minY) * sc) / 2;
+  const P = (p: [number, number]): [number, number] => [ox + (p[0] - minX) * sc, H - (oy + (p[1] - minY) * sc)];
+
+  // Edges in drawing order: base, then the lateral edges, then the top.
+  const edges: Array<[[number, number], [number, number]]> = [];
+  const ring = (pts: Array<[number, number]>) => pts.map((p, i) => [p, pts[(i + 1) % pts.length]] as [[number, number], [number, number]]);
+  edges.push(...ring(base));
+  if (spec.prism) {
+    base.forEach((b, i) => edges.push([b, top[i]]));
+    edges.push(...ring(top));
+  }
+  const DELAY = 0.22;
+  const body = (
+    <>
+      <polygon points={base.map(P).map((p) => p.join(",")).join(" ")} fill="#1e6fff" fillOpacity={0.08} className="chart-dot" style={{ animationDelay: "0.6s" }} />
+      {edges.map(([a, b], i) => (
+        <path
+          key={i}
+          d={`M${P(a)[0].toFixed(1)} ${P(a)[1].toFixed(1)} L${P(b)[0].toFixed(1)} ${P(b)[1].toFixed(1)}`}
+          pathLength={1}
+          className="chart-path"
+          fill="none"
+          stroke="#1e6fff"
+          strokeWidth={3}
+          strokeLinecap="round"
+          style={{ animationDelay: `${(i * DELAY).toFixed(2)}s` }}
+        />
+      ))}
+      {base.map((p, i) => {
+        const [x, y] = P(p);
+        const label = spec.labels[i];
+        return label ? (
+          <text key={`l${i}`} x={x + 10} y={y - 10} className="chart-label chart-dot" style={{ animationDelay: `${(edges.length * DELAY + 0.2).toFixed(2)}s` }}>{label}</text>
+        ) : null;
+      })}
+    </>
+  );
+  const caption = spec.title || (spec.prism ? "Призма" : base.length === 3 ? "Үшбұрыш" : "Көпбұрыш");
+  return { body, caption };
+}
+
 export function Chart({ raw }: { raw: string }) {
   const spec = parseChart(raw);
   const ref = useRef<HTMLDivElement>(null);
@@ -199,7 +275,11 @@ export function Chart({ raw }: { raw: string }) {
   let body: ReactNode;
   let caption = spec.title;
 
-  if (spec.kind === "fn") {
+  if (spec.kind === "shape") {
+    const r = renderShape(spec);
+    body = r.body;
+    caption = r.caption;
+  } else if (spec.kind === "fn") {
     const f = parseFn(spec.fn);
     if (!f) return <p className="chart-error">График: формула «{spec.fn}» не распознана.</p>;
     const N = 240;

@@ -226,7 +226,7 @@ export function TestPage() {
             </div>
             {r?.explanation && (
               <div className="qz-errors">
-                <strong>Работа с ошибками</strong>
+                <strong>Қателермен жұмыс</strong>
                 <Markdown text={r.explanation} plain />
               </div>
             )}
