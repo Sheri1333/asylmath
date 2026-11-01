@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { Shell } from "../components/Shell";
@@ -188,6 +188,22 @@ function PhotoList({ text, onChange }: { text: string; onChange: (next: string) 
       ))}
     </ul>
   );
+}
+
+/** Ctrl+V of a picture into a text field: uploads it and appends the image line. Text paste is left alone. */
+async function pasteImage(e: ClipboardEvent<HTMLTextAreaElement>, insert: (markdown: string) => void) {
+  const item = [...e.clipboardData.items].find((i) => i.type.startsWith("image/"));
+  if (!item) return;
+  const file = item.getAsFile();
+  if (!file) return;
+  e.preventDefault();
+  try {
+    const ext = file.type.split("/")[1] || "png";
+    const m = await api.adminUpload(new File([file], `pasted-${Date.now()}.${ext}`, { type: file.type }));
+    insert(`![](${m.url})`);
+  } catch (err) {
+    alert(err instanceof Error ? err.message : "Не удалось загрузить картинку");
+  }
 }
 
 export function CourseEditorPage() {
@@ -630,7 +646,10 @@ function LessonEditor({ lesson, onChange }: { lesson: EditLesson; onChange: (pat
           <div className="les-card les-md ced-preview">{lesson.content ? <Markdown text={lesson.content} /> : <p className="adm-muted">Пусто</p>}</div>
         ) : (
           <>
-            <textarea className="ced-md" rows={14} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} placeholder={"Айтатыным: «Екі қатынас тең болса, бұл пропорция.»\nТақтада:\na : b = c : d \\quad \\Longleftrightarrow \\quad \\frac{a}{b} = \\frac{c}{d}\n\n2. Пропорция (~4 мин)\nЖиі қате: шеткі мүшені ортаңғымен көбейту."} />
+            <textarea className="ced-md" rows={14} value={lesson.content} onChange={(e) => onChange({ content: e.target.value })} onPaste={(e) => void pasteImage(e, (md) => onChange({ content: `${lesson.content.trimEnd()}
+
+${md}
+` }))} placeholder={"Айтатыным: «Екі қатынас тең болса, бұл пропорция.»\nТақтада:\na : b = c : d \\quad \\Longleftrightarrow \\quad \\frac{a}{b} = \\frac{c}{d}\n\n2. Пропорция (~4 мин)\nЖиі қате: шеткі мүшені ортаңғымен көбейту."} />
             <div className="ced-chart-tools">
               <button type="button" className="qz-prev" onClick={() => onChange({ content: `${lesson.content.trimEnd()}\n\n${CHART_TEMPLATE}\n` })}>
                 <Icon name="monitoring" size={18} />Вставить график
@@ -778,6 +797,10 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                 <textarea
                   rows={12}
                   value={q.explanation}
+                  onPaste={(e) => void pasteImage(e, (md) => setQ(qi, { explanation: `${q.explanation.trimEnd()}
+
+${md}
+` }))}
                   onChange={(e) => setQ(qi, { explanation: e.target.value })}
                   placeholder={"4 725 санының берілген сандарға бөлінгіштік белгілерін тексереміз.\n- 2-ге бөлінбейді, себебі соңғы цифры 5 (жұп сан емес).\n- 3-ке бөлінеді, себебі цифрларының қосындысы $4 + 7 + 2 + 5 = 18$.\n- 25-ке бөлінеді, себебі соңғы екі цифры $25$."}
                 />
