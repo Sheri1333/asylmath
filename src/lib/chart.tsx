@@ -22,7 +22,8 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 export type ChartSpec =
   | { kind: "fn"; title: string; fn: string; from: number; to: number; xlabel: string; ylabel: string }
   | { kind: "line" | "bar"; title: string; x: string[]; y: number[]; xlabel: string; ylabel: string }
-  | { kind: "shape"; title: string; prism: boolean; pts: Array<[number, number]>; h: number; labels: string[] };
+  | { kind: "shape"; title: string; prism: boolean; pts: Array<[number, number]>; h: number; labels: string[] }
+  | { kind: "solid"; title: string; solid: "cylinder" | "cone" | "sphere"; r: number; h: number };
 
 /** "0,0; 4,0; 2,3" → [[0,0],[4,0],[2,3]] */
 function parsePoints(s: string): Array<[number, number]> | null {
@@ -46,6 +47,20 @@ export function parseChart(raw: string): ChartSpec | null {
   const ylabel = map.ylabel ?? "";
   // Figures: triangle / polygon from points, prism from a base and a height.
   const figure = (map.shape ?? "").toLowerCase();
+  // Round solids and the cube. Cube is a prism with a square base.
+  if (/cube|куб/.test(figure)) {
+    const a = Number(map.side ?? map.height ?? map.a ?? 0);
+    if (!Number.isFinite(a) || a <= 0) return null;
+    return { kind: "shape", title, prism: true, pts: [[0, 0], [a, 0], [a, a], [0, a]], h: a, labels: [] };
+  }
+  const solid = /cylinder|цилиндр/.test(figure) ? "cylinder" : /cone|конус/.test(figure) ? "cone" : /sphere|сфера|шар/.test(figure) ? "sphere" : null;
+  if (solid) {
+    const r = Number(map.radius ?? map.r ?? 0);
+    const h = Number(map.height ?? 0);
+    if (!Number.isFinite(r) || r <= 0) return null;
+    if (solid !== "sphere" && (!Number.isFinite(h) || h <= 0)) return null;
+    return { kind: "solid", title, solid, r, h };
+  }
   const base = map.base ?? map.points;
   if (base) {
     const pts = parsePoints(base);
@@ -191,6 +206,79 @@ const PR = 24;
 const PT = 24;
 const PB = 48;
 
+/**
+ * Cylinder, cone and sphere. Ellipses are drawn as halves: the front half solid, the back half
+ * dashed (hidden), so the figure reads as 3D. Each part draws in turn on scroll.
+ */
+function renderSolid(spec: Extract<ChartSpec, { kind: "solid" }>): ReactNode {
+  const K = 0.32; // ellipse flattening: the base seen slightly from above
+  const R = spec.r;
+  const Hh = spec.h;
+  const pad = 48;
+  const totalH = spec.solid === "sphere" ? 2 * R : spec.solid === "cone" ? Hh + K * R : Hh + 2 * K * R;
+  const k = Math.min((W - 2 * pad) / (2 * R), (H - 2 * pad) / totalH);
+  const rx = R * k;
+  const ry = K * R * k;
+  const cx = W / 2;
+  const hpx = Hh * k;
+
+  // Half-ellipse: the bottom arc (front) or the top arc (back), from the left point to the right point.
+  const front = (cy: number) => `M${cx - rx} ${cy} A${rx} ${ry} 0 0 0 ${cx + rx} ${cy}`;
+  const back = (cy: number) => `M${cx + rx} ${cy} A${rx} ${ry} 0 0 0 ${cx - rx} ${cy}`;
+  const full = (cy: number) => `${front(cy)} ${back(cy)}`;
+  const seg = (d: string, i: number, hidden = false) => (
+    <path
+      key={`${d}${i}`}
+      d={d}
+      pathLength={1}
+      className={hidden ? "chart-dot" : "chart-path"}
+      fill="none"
+      stroke="#1e6fff"
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeDasharray={hidden ? "7 7" : undefined}
+      style={{ animationDelay: `${(i * 0.25).toFixed(2)}s` }}
+    />
+  );
+
+  if (spec.solid === "sphere") {
+    const cy = H / 2;
+    const Rk = R * k;
+    return (
+      <>
+        {seg(`M${cx - Rk} ${cy} A${Rk} ${Rk} 0 1 0 ${cx + Rk} ${cy} A${Rk} ${Rk} 0 1 0 ${cx - Rk} ${cy}`, 0)}
+        {seg(front(cy), 1)}
+        {seg(back(cy), 2, true)}
+      </>
+    );
+  }
+
+  const baseY = H - pad - ry;
+  const topY = baseY - hpx;
+
+  if (spec.solid === "cylinder") {
+    return (
+      <>
+        {seg(front(baseY), 0)}
+        {seg(back(baseY), 1, true)}
+        {seg(`M${cx - rx} ${baseY} L${cx - rx} ${topY}`, 2)}
+        {seg(`M${cx + rx} ${baseY} L${cx + rx} ${topY}`, 3)}
+        {seg(full(topY), 4)}
+      </>
+    );
+  }
+
+  // cone
+  return (
+    <>
+      {seg(front(baseY), 0)}
+      {seg(back(baseY), 1, true)}
+      {seg(`M${cx} ${topY} L${cx - rx} ${baseY}`, 2)}
+      {seg(`M${cx} ${topY} L${cx + rx} ${baseY}`, 3)}
+    </>
+  );
+}
+
 /** Triangle / polygon / prism. A prism is drawn in oblique projection: base, a copy shifted by the height, and the edges between. */
 function renderShape(spec: Extract<ChartSpec, { kind: "shape" }>): { body: ReactNode; caption: string } {
   const off = spec.prism ? spec.h * 0.5 : 0;
@@ -275,7 +363,10 @@ export function Chart({ raw }: { raw: string }) {
   let body: ReactNode;
   let caption = spec.title;
 
-  if (spec.kind === "shape") {
+  if (spec.kind === "solid") {
+    body = renderSolid(spec);
+    caption = spec.title || { cylinder: "Цилиндр", cone: "Конус", sphere: "Сфера" }[spec.solid];
+  } else if (spec.kind === "shape") {
     const r = renderShape(spec);
     body = r.body;
     caption = r.caption;
