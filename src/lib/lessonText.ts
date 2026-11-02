@@ -229,6 +229,7 @@ export function parseLesson(text: string): LessonBlock[] {
         }
         i += 1;
       }
+      const from = i;
       while (i < lines.length) {
         const cur = lines[i].trim();
         if (!cur) break;
@@ -241,6 +242,12 @@ export function parseLesson(text: string): LessonBlock[] {
         if (!looksLikeMath(cur) && !(prev && isContinuation(prev, cur))) break;
         parts.push(cur);
         i += 1;
+      }
+      // Nothing was consumed (e.g. "Мысал 1. x = 2" is both a heading and math): keep the line as text so the loop moves on.
+      if (i === from) {
+        blocks.push({ kind: "paragraph", text: line });
+        i += 1;
+        continue;
       }
       const tex = joinTex(parts.filter(Boolean));
       if (tex) blocks.push({ kind: "board", tex, caption });
