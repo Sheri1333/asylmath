@@ -111,7 +111,7 @@ function joinProse(parts: string[]): string {
 }
 
 function joinTex(parts: string[]): string {
-  let out = parts[0];
+  let out = parts[0] ?? "";
   for (let i = 1; i < parts.length; i += 1) {
     out += isContinuation(parts[i - 1], parts[i]) ? ` ${parts[i]}` : ` \\\\ ${parts[i]}`;
   }
