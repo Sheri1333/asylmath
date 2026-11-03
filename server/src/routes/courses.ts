@@ -309,6 +309,12 @@ coursesRouter.post("/:key/lessons/:lessonId/quiz", authRequired, async (req: Aut
   }
   const graded = grade(quiz, (req.body as { picks?: unknown })?.picks);
   await saveAttempt(enr, lesson.id, graded);
+  if (graded.passed && enr && !enr.completedLessonIds.includes(lesson.id)) {
+    await enrollments().updateOne(
+      { _id: enr._id },
+      { $addToSet: { completedLessonIds: lesson.id }, $set: { lastAccessedAt: new Date() } },
+    );
+  }
   res.json({
     score: graded.score,
     total: graded.total,

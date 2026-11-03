@@ -143,6 +143,49 @@ export interface EnrollmentDoc {
   lastAccessedAt: Date;
 }
 
+/** Standalone dated mock test (Сынақтар), separate from course lesson quizzes. */
+export interface ExamQuestionDoc {
+  id: string;
+  prompt: string;
+  /** Short note under the question. */
+  description: string;
+  /** Optional photo shown with the question. */
+  imageUrl?: string;
+  choices: string[];
+  answer: number;
+  explanation: string;
+  level: QuestionLevel;
+}
+
+export interface ExamDoc {
+  _id: string;
+  title: string;
+  /** Calendar day the test is scheduled for, YYYY-MM-DD. */
+  date: string;
+  description: string;
+  passPercent: number;
+  timeLimitMinutes: number;
+  published: boolean;
+  /** YouTube «работа над ошибками» shown after the student finishes the whole test. */
+  reviewVideoUrl: string;
+  questions: ExamQuestionDoc[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ExamAttemptDoc {
+  _id: ObjectId;
+  examId: string;
+  userId: ObjectId;
+  best: number;
+  last: number;
+  total: number;
+  passed: boolean;
+  attempts: number;
+  lastPicks: number[];
+  updatedAt: Date;
+}
+
 let client: MongoClient | null = null;
 let database: Db | null = null;
 
@@ -178,6 +221,10 @@ export async function connectDb(): Promise<Db> {
     .collection<EnrollmentDoc>("enrollments")
     .createIndex({ userId: 1, courseId: 1 }, { unique: true });
   await database.collection<EnrollmentDoc>("enrollments").createIndex({ userId: 1 });
+  await database.collection<ExamDoc>("exams").createIndex({ date: -1, published: 1 });
+  await database
+    .collection<ExamAttemptDoc>("examAttempts")
+    .createIndex({ examId: 1, userId: 1 }, { unique: true });
 
   console.log("MongoDB connected: db=aslmath");
   return database;
@@ -208,6 +255,14 @@ export function courses(): Collection<CourseDoc> {
 
 export function enrollments(): Collection<EnrollmentDoc> {
   return requireDb().collection<EnrollmentDoc>("enrollments");
+}
+
+export function exams(): Collection<ExamDoc> {
+  return requireDb().collection<ExamDoc>("exams");
+}
+
+export function examAttempts(): Collection<ExamAttemptDoc> {
+  return requireDb().collection<ExamAttemptDoc>("examAttempts");
 }
 
 export function publicUser(doc: UserDoc) {

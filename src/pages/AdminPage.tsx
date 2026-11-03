@@ -5,9 +5,9 @@ import { useAuth } from "../auth/AuthContext";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { fmtMoney } from "../lib/course";
-import type { AdminEnrollment, CourseSummary } from "../types/course";
+import type { AdminEnrollment, CourseSummary, ExamSummary } from "../types/course";
 
-type Tab = "stats" | "courses" | "access" | "users";
+type Tab = "stats" | "courses" | "exams" | "access" | "users";
 type Stats = { users: number; courses: number; publishedCourses: number; enrollments: number; pending: number };
 type AdminUser = { id: string; email: string; name: string; role: string; createdAt: string; enrollmentsCount: number };
 
@@ -23,6 +23,7 @@ export function AdminPage() {
   const [courses, setCourses] = useState<CourseSummary[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [access, setAccess] = useState<AdminEnrollment[]>([]);
+  const [examList, setExamList] = useState<ExamSummary[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,11 +31,18 @@ export function AdminPage() {
   const [grant, setGrant] = useState({ email: "", courseId: "" });
 
   const refresh = useCallback(async () => {
-    const [s, c, u, a] = await Promise.all([api.adminStats(), api.adminCourses(), api.adminUsers(), api.adminEnrollments("all")]);
+    const [s, c, u, a, e] = await Promise.all([
+      api.adminStats(),
+      api.adminCourses(),
+      api.adminUsers(),
+      api.adminEnrollments("all"),
+      api.adminExams(),
+    ]);
     setStats(s.stats);
     setCourses(c.courses);
     setUsers(u.users);
     setAccess(a.enrollments);
+    setExamList(e.exams);
     setGrant((g) => (g.courseId ? g : { ...g, courseId: c.courses.find((x) => x.featured)?.id ?? c.courses[0]?.id ?? "" }));
   }, []);
 
@@ -83,12 +91,13 @@ export function AdminPage() {
         <section className="cab-hello">
           <div>
             <h1>Админ-панель</h1>
-            <p><Icon name="admin_panel_settings" size={20} color="var(--navy)" /><span>Курсы, оплаты и ученики</span></p>
+            <p><Icon name="admin_panel_settings" size={20} color="var(--navy)" /><span>Курсы, сынақтар, оплаты и ученики</span></p>
           </div>
           <div className="qz-toggle" role="tablist">
             {([
               ["stats", "monitoring", "Обзор"],
               ["courses", "menu_book", "Курсы"],
+              ["exams", "quiz", "Сынақтар"],
               ["access", "verified", "Доступ"],
               ["users", "group", "Пользователи"],
             ] as const).map(([t, icon, label]) => (
@@ -194,6 +203,58 @@ export function AdminPage() {
                 <li className="adm-empty">
                   <p>Курсов пока нет. Создайте первый: добавьте разделы, уроки с видео и тесты.</p>
                   <Link to="/admin/courses/new" className="qz-next"><Icon name="add" size={18} />Создать курс</Link>
+                </li>
+              )}
+            </ul>
+          </article>
+        )}
+
+        {tab === "exams" && (
+          <article className="cab-card">
+            <header className="cab-card__head">
+              <div>
+                <span className="cab-card__ico"><Icon name="quiz" size={22} /></span>
+                <div>
+                  <h3>Датированные сынақтар</h3>
+                  <p>Выберите дату, добавьте вопросы с фото и YouTube-разбор ошибок</p>
+                </div>
+              </div>
+              <Link to="/admin/exams/new" className="qz-next"><Icon name="add" size={18} />Новый тест</Link>
+            </header>
+            <ul className="adm-clist">
+              {examList.map((ex) => (
+                <li key={ex.id}>
+                  <span className="adm-swatch" style={{ background: "var(--navy)" }} />
+                  <div>
+                    <b>{ex.title}</b>
+                    <small>
+                      {ex.date} · {ex.questionCount} вопросов · шек {ex.passPercent}%
+                      {ex.timeLimitMinutes ? ` · ${ex.timeLimitMinutes} мин` : ""}
+                      {ex.reviewVideoUrl ? " · есть разбор" : ""}
+                    </small>
+                  </div>
+                  <span className={ex.published ? "adm-role live" : "adm-role"}>{ex.published ? "Опубликован" : "Черновик"}</span>
+                  <div className="adm-acts">
+                    <Link to={`/admin/exams/${ex.id}`} className="adm-open"><Icon name="edit" size={18} />Редактировать</Link>
+                    <button
+                      type="button"
+                      className="danger"
+                      aria-label={`Удалить тест ${ex.title}`}
+                      disabled={busy}
+                      onClick={() => {
+                        if (!confirm(`Удалить тест «${ex.title}» и все попытки учеников?`)) return;
+                        void run(() => api.adminDeleteExam(ex.id), "Тест удалён");
+                      }}
+                    >
+                      <Icon name="delete" size={18} />
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {examList.length === 0 && (
+                <li className="adm-empty">
+                  <p>Тестов пока нет. Создайте первый: укажите дату, вопросы и ссылку на YouTube-разбор.</p>
+                  <Link to="/admin/exams/new" className="qz-next"><Icon name="add" size={18} />Создать тест</Link>
                 </li>
               )}
             </ul>

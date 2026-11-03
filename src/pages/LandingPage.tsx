@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { API_BASE } from "../api/client";
 import { Icon } from "../components/Icon";
 import { faqs, modules } from "../data/content";
 
@@ -32,21 +33,21 @@ const tries = [
 ];
 
 const why = [
-  { icon: "play_lesson", title: "Түсінікті видеосабақтар", text: "11 бөлім нөлден бастап: формуланы жаттамай, мағынасын түсіндіреміз." },
+  { icon: "play_lesson", title: "Түсінікті видеосабақтар", text: "Нөлден бастап: формуланы жаттамай, мағынасын түсіндіреміз." },
   { icon: "fact_check", title: "Әр сұраққа талдау", text: "Тесттен кейін әр қатенің түсіндірмесі бар: қайда, неге қателестің." },
   { icon: "timer", title: "ҰБТ форматындағы тест", text: "Уақыт шектеулі тақырыптық тесттер нағыз емтиханға үйретеді." },
   { icon: "monitoring", title: "Жеке кабинет", text: "Прогресс, нәтижелер графигі және қайталауды қажет ететін тақырыптар." },
 ];
 
 const steps = [
-  { icon: "person", title: "Тіркел", text: "Аккаунт аш та, тегін сабақпен бірден танысып шық." },
+  { icon: "person", title: "Тіркел", text: "Аккаунт ашып, Kaspi төлемін жіберіңіз. Расталған соң сабақтар ашылады." },
   { icon: "play_circle", title: "Сабақты көр", text: "Видео мен конспект: әр тақырып қарапайым тілде." },
-  { icon: "quiz", title: "Тест тапсыр", text: "Бөлім соңындағы тест келесі тақырыпты ашады." },
+  { icon: "quiz", title: "Тест тапсыр", text: "Әр сабақтан кейін тест білімді бекітеді." },
   { icon: "emoji_events", title: "Балыңды көтер", text: "Қателерді талда, әлсіз тақырыптарды қайтала." },
 ];
 
 const perks = [
-  "11 бөлім бойынша барлық видеосабақтар",
+  "Барлық бөлім бойынша видеосабақтар",
   "Әр сабаққа конспект пен формулалар шпаргалкасы",
   "Әр бөлімнен кейін ҰБТ форматындағы тест",
   "Жеке кабинет және әлсіз тақырыптар аналитикасы",
@@ -82,7 +83,8 @@ function HeroTry({ cta }: { cta: string }) {
   const [pick, setPick] = useState<number | null>(null);
   const [left, setLeft] = useState(30);
   const t = tries[n];
-  const done = pick !== null;
+  const expired = left === 0 && pick === null;
+  const done = pick !== null || expired;
   const right = pick === t.answer;
 
   useEffect(() => {
@@ -122,7 +124,7 @@ function HeroTry({ cta }: { cta: string }) {
           {done ? (
             <>
               <p className={right ? "ok" : "bad"}>
-                <strong>{right ? "Дұрыс!" : `Дұрыс жауап: ${"АБВГ"[t.answer]}.`}</strong> {t.why}
+                <strong>{expired ? `Уақыт бітті. Дұрыс жауап: ${"АБВГ"[t.answer]}.` : right ? "Дұрыс!" : `Дұрыс жауап: ${"АБВГ"[t.answer]}.`}</strong> {t.why}
               </p>
               <div className="lp-try__acts">
                 <button type="button" className="lp-btn lp-btn--ghost sm" onClick={next}>Келесі есеп</button>
@@ -167,15 +169,37 @@ function useReveal() {
   return root;
 }
 
+function tenge(n: number) {
+  return `${n.toLocaleString("ru-RU").replace(/\s/g, " ")} ₸`;
+}
+
 export function LandingPage() {
   const { user } = useAuth();
   const [open, setOpen] = useState(0);
   const [menu, setMenu] = useState(false);
+  const [price, setPrice] = useState<number | null | undefined>(undefined);
   const join = user ? "/course" : "/register";
   const root = useReveal();
+  const deal = price === 9990;
 
   useEffect(() => {
     document.title = "MATH ASYL — ҰБТ математикасына дайындық";
+  }, []);
+
+  useEffect(() => {
+    let stop = false;
+    fetch(`${API_BASE}/api/courses`)
+      .then((r) => r.json())
+      .then((d: { courses?: Array<{ priceTenge: number | null; isFree?: boolean; featured?: boolean }> }) => {
+        const list = d.courses ?? [];
+        const c = list.find((x) => x.featured) ?? list[0];
+        if (!stop && c && !c.isFree && c.priceTenge) setPrice(c.priceTenge);
+        if (!stop && c?.isFree) setPrice(null);
+      })
+      .catch(() => {});
+    return () => {
+      stop = true;
+    };
   }, []);
 
   return (
@@ -253,7 +277,7 @@ export function LandingPage() {
             </div>
             <p className="lp-note" data-reveal>
               <Icon name="lightbulb" size={20} />
-              Әр бөлімнен кейінгі тест келесі тақырыпты ашады: білімде бос орын қалмайды.
+              Алдыңғы бөлімнің тесттері тапсырылмай, келесі бөлім ашылмайды.
             </p>
           </div>
         </section>
@@ -261,7 +285,7 @@ export function LandingPage() {
         <section className="lp-sec" id="program">
           <div className="lp-wrap">
             <div className="lp-dark" data-reveal>
-              <Head dark pill="11 бөлім" sub="Ұлттық бірыңғай тестілеу талаптарына толық сәйкес келетін қадамдық оқу жоспары.">
+              <Head dark pill="13 бөлім" sub="Ұлттық бірыңғай тестілеу талаптарына толық сәйкес келетін қадамдық оқу жоспары.">
                 Курс <span className="lp-grad lp-grad--light">бағдарламасы</span>
               </Head>
               <ol className="lp-chapters">
@@ -277,7 +301,7 @@ export function LandingPage() {
               </ol>
               <div className="lp-dark__cta">
                 <Link to={join} className="lp-btn lp-btn--coral">Курсқа жазылу<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
-                <span>Бірінші сабақ тіркелгеннен кейін тегін ашылады.</span>
+                <span>Сабақтар төлем расталғаннан кейін ашылады.</span>
               </div>
             </div>
           </div>
@@ -336,10 +360,10 @@ export function LandingPage() {
                 ))}
               </ul>
               <div className="lp-price__box">
-                <span className="lp-price__off">−50% жеңілдік</span>
-                <p className="lp-price__old">19 900 ₸</p>
-                <p className="lp-price__now">9 990 ₸</p>
-                <p className="lp-price__hint">немесе Kaspi Red арқылы 3 айға 3 330 ₸-ден</p>
+                {deal && <span className="lp-price__off">−50% жеңілдік</span>}
+                {deal && <p className="lp-price__old">19 900 ₸</p>}
+                <p className="lp-price__now">{price === undefined ? "…" : price ? tenge(price) : "Тегін"}</p>
+                <p className="lp-price__hint">{deal ? "немесе Kaspi Red арқылы 3 айға 3 330 ₸-ден" : "Бір реттік төлем. Kaspi арқылы"}</p>
                 <Link to={join} className="lp-btn lp-btn--teal wide"><Icon name="qr_code_scanner" size={20} />Kaspi арқылы төлеу</Link>
                 <small><Icon name="lock" size={14} />Төлем расталғаннан кейін курс бірден ашылады</small>
               </div>

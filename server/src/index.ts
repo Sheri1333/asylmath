@@ -7,6 +7,7 @@ import { authRouter } from "./routes/auth.js";
 import { coursesRouter } from "./routes/courses.js";
 import { enrollmentsRouter } from "./routes/enrollments.js";
 import { adminRouter, UPLOAD_DIR } from "./routes/admin.js";
+import { examsRouter } from "./routes/exams.js";
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -109,6 +110,7 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRouter);
 app.use("/api/courses", coursesRouter);
 app.use("/api/enrollments", enrollmentsRouter);
+app.use("/api/exams", examsRouter);
 app.use("/api/admin", adminRouter);
 
 app.use(

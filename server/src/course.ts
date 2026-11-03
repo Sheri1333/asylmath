@@ -46,7 +46,15 @@ export function hasAccess(doc: CourseDoc, enr: EnrollmentDoc | null, isAdmin: bo
   return isAdmin || isActive(enr);
 }
 
-/** A section is open when sequencing is off, it is the first one, or the test before it is passed. */
+/** A section counts as passed when its own test is passed, or — if it has no section test — every lesson test in it is passed. A section with no tests does not block the next one. */
+function sectionCleared(section: SectionDoc, enr: EnrollmentDoc | null): boolean {
+  if (section.quiz.questions.length > 0) return Boolean(enr?.quizResults?.[section.id]?.passed);
+  const gated = section.lessons.filter((l) => (l.quiz?.questions.length ?? 0) > 0);
+  if (gated.length === 0) return true;
+  return gated.every((l) => Boolean(enr?.quizResults?.[l.id]?.passed));
+}
+
+/** A section is open when sequencing is off, it is the first one, or every section before it is passed. */
 export function sectionOpen(
   sections: SectionDoc[],
   index: number,
@@ -55,12 +63,7 @@ export function sectionOpen(
   isAdmin: boolean,
 ): boolean {
   if (isAdmin || !doc.sequential || index <= 0) return true;
-  for (let i = index - 1; i >= 0; i -= 1) {
-    const prev = sections[i];
-    if (prev.quiz.questions.length === 0) continue;
-    return Boolean(enr?.quizResults?.[prev.id]?.passed);
-  }
-  return true;
+  return sections.slice(0, index).every((section) => sectionCleared(section, enr));
 }
 
 export function progressPercent(doc: CourseDoc, enr: EnrollmentDoc | null): number {

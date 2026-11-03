@@ -65,7 +65,7 @@ export function AccountPage() {
             {!error && items === null && <p className="adm-muted">Жүктелуде…</p>}
             {items && items.length === 0 && (
               <div className="acc__empty">
-                <p>Әзірге ешбір курсқа жазылмағансыз. Бағдарламадан бастаңыз: бірінші сабақ бірден ашылады.</p>
+                <p>Әзірге ешбір курсқа жазылмағансыз. Бағдарламаны ашып, төлемді растауға жіберіңіз.</p>
                 <Link to="/course" className="prog__btn">Бағдарламаны ашу<Icon name="arrow_forward" size={16} /></Link>
               </div>
             )}

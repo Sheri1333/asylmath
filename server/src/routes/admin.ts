@@ -3,9 +3,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import express, { Router } from "express";
 import { GridFSBucket, ObjectId } from "mongodb";
-import { courses, enrollments, getDb, toObjectId, users, type CourseDoc } from "../db.js";
+import { courses, enrollments, examAttempts, exams, getDb, toObjectId, users, type CourseDoc, type ExamDoc } from "../db.js";
 import { adminRequired, type AuthedRequest } from "../auth.js";
 import { cleanSections, courseSections, enrollmentView, publicCourse } from "../course.js";
+import { examInput, fullExam, publicExam } from "../exam.js";
 
 // ── Stored photos: ids referenced in course text, and cleanup of unused files ───────────────
 
@@ -16,11 +17,16 @@ function fileIds(value: unknown): Set<string> {
   return new Set([...JSON.stringify(value ?? null).matchAll(FILE_REF)].map((m) => m[1]));
 }
 
-/** Deletes stored files that no course uses any more. Only the given candidates, plus orphans older than an hour. */
+/** Deletes stored files that no course/exam uses any more. Only the given candidates, plus orphans older than an hour. */
 async function cleanupFiles(candidates: string[] = []): Promise<void> {
   try {
     const bucket = new GridFSBucket(getDb(), { bucketName: "files" });
-    const used = fileIds((await courses().find({}, { projection: { sections: 1 } }).toArray()).map((c) => c.sections));
+    const courseParts = (await courses().find({}, { projection: { sections: 1 } }).toArray()).map((c) => c.sections);
+    const examParts = (await exams().find({}, { projection: { questions: 1, reviewVideoUrl: 1 } }).toArray()).map((e) => ({
+      questions: e.questions,
+      reviewVideoUrl: e.reviewVideoUrl,
+    }));
+    const used = fileIds([...courseParts, ...examParts]);
     const orphanBefore = new Date(Date.now() - 60 * 60 * 1000);
     const stale = await bucket.find({ uploadDate: { $lt: orphanBefore } }, { projection: { _id: 1 } }).toArray();
     const ids = new Set([...candidates, ...stale.map((f) => f._id.toHexString())]);
@@ -250,6 +256,71 @@ adminRouter.delete("/enrollments/:id", async (req, res) => {
     return;
   }
   await enrollments().deleteOne({ _id: id });
+  res.json({ ok: true });
+});
+
+// ── Dated exams (Сынақтар) ─────────────────────────────────────────────────
+
+adminRouter.get("/exams", async (_req, res) => {
+  const rows = await exams().find().sort({ date: -1, updatedAt: -1 }).toArray();
+  res.json({ exams: rows.map(publicExam) });
+});
+
+adminRouter.get("/exams/:id", async (req, res) => {
+  const row = await exams().findOne({ _id: String(req.params.id) });
+  if (!row) {
+    res.status(404).json({ error: "Тест не найден" });
+    return;
+  }
+  res.json({ exam: fullExam(row) });
+});
+
+adminRouter.post("/exams", async (req, res) => {
+  let input;
+  try {
+    input = examInput((req.body ?? {}) as Record<string, unknown>);
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+    return;
+  }
+  const now = new Date();
+  const doc: ExamDoc = { _id: randomUUID(), ...input, createdAt: now, updatedAt: now };
+  await exams().insertOne(doc);
+  await cleanupFiles();
+  res.status(201).json({ ok: true, exam: fullExam(doc) });
+});
+
+adminRouter.put("/exams/:id", async (req, res) => {
+  const id = String(req.params.id);
+  const existing = await exams().findOne({ _id: id });
+  if (!existing) {
+    res.status(404).json({ error: "Тест не найден" });
+    return;
+  }
+  let input;
+  try {
+    input = examInput((req.body ?? {}) as Record<string, unknown>);
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+    return;
+  }
+  const removed = [...fileIds(existing)].filter((x) => !fileIds(input).has(x));
+  await exams().updateOne({ _id: id }, { $set: { ...input, updatedAt: new Date() } });
+  await cleanupFiles(removed);
+  const row = await exams().findOne({ _id: id });
+  res.json({ ok: true, exam: fullExam(row!) });
+});
+
+adminRouter.delete("/exams/:id", async (req, res) => {
+  const id = String(req.params.id);
+  const existing = await exams().findOne({ _id: id });
+  if (!existing) {
+    res.status(404).json({ error: "Тест не найден" });
+    return;
+  }
+  await exams().deleteOne({ _id: id });
+  await examAttempts().deleteMany({ examId: id });
+  await cleanupFiles([...fileIds(existing)]);
   res.json({ ok: true });
 });
 

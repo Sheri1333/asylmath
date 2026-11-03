@@ -136,6 +136,62 @@ export interface QuizSubmitResult {
   passed: boolean;
   passPercent: number;
   review: ReviewItem[];
+  reviewVideoUrl?: string | null;
+}
+
+/** Dated mock test shown under Сынақтар. */
+export interface ExamSummary {
+  id: string;
+  title: string;
+  date: string;
+  description: string;
+  passPercent: number;
+  timeLimitMinutes: number;
+  published: boolean;
+  reviewVideoUrl: string;
+  questionCount: number;
+  createdAt: string;
+  updatedAt: string;
+  result?: (QuizResultSummary & { updatedAt: string }) | null;
+}
+
+export interface EditExamQuestion {
+  id?: string;
+  prompt: string;
+  description: string;
+  imageUrl: string;
+  choices: string[];
+  answer: number;
+  explanation: string;
+  level: QuestionLevel;
+}
+
+export interface EditExam {
+  title: string;
+  date: string;
+  description: string;
+  passPercent: number;
+  timeLimitMinutes: number;
+  published: boolean;
+  reviewVideoUrl: string;
+  questions: EditExamQuestion[];
+}
+
+export interface ExamView {
+  exam: ExamSummary;
+  quiz: {
+    passPercent: number;
+    timeLimitMinutes: number;
+    questions: Array<{
+      id: string;
+      prompt: string;
+      description: string;
+      imageUrl: string;
+      choices: string[];
+      level: QuestionLevel;
+    }>;
+  };
+  result: (QuizResultSummary & { review: ReviewItem[]; reviewVideoUrl?: string | null }) | null;
 }
 
 // ── Admin editing shapes (answers included) ──

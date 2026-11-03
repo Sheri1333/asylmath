@@ -156,12 +156,12 @@ export function TestPage() {
   const last = index === qs.length - 1;
   const counts = qs.reduce(
     (acc, _, i) => {
-      if (i === index) return acc;
       if (flags.includes(i)) acc.flag += 1;
       else if (picks[i] >= 0) acc.ans += 1;
+      else if (i !== index) acc.open += 1;
       return acc;
     },
-    { ans: 0, flag: 0 },
+    { ans: 0, flag: 0, open: 0 },
   );
   const finish = () => {
     const missing = qs.length - answered;
@@ -226,7 +226,7 @@ export function TestPage() {
             </div>
             {r?.explanation && (
               <div className="qz-errors">
-                <strong>Қателермен жұмыс</strong>
+                <strong>{r.pick === r.answer ? "Түсіндірме" : "Қателермен жұмыс"}</strong>
                 <Markdown text={r.explanation} plain />
               </div>
             )}
@@ -414,7 +414,7 @@ export function TestPage() {
                   <li><i className="ans" />Жауап берілді ({counts.ans})</li>
                   <li><i className="cur" />Ағымдағы (1)</li>
                   <li><i className="flag" />Белгіленген ({counts.flag})</li>
-                  <li><i />Ашылмаған ({qs.length - 1 - counts.ans - counts.flag})</li>
+                  <li><i />Ашылмаған ({counts.open})</li>
                 </ul>
               </article>
             </aside>

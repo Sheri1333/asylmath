@@ -64,7 +64,7 @@ export function quizStops(outline: OutlineSection[]): QuizStop[] {
         id: l.id,
         to: `/tests/lesson/${l.id}`,
         title: l.title,
-        heading: `${s.order}.${i + 1} сабақ тесті`,
+        heading: `${l.title.match(/^(\d+\.\d+)/)?.[1] ?? `${s.order}.${i + 1}`} сабақ тесті`,
         order: s.order,
         questionCount: l.quiz.questionCount,
         passPercent: l.quiz.passPercent,

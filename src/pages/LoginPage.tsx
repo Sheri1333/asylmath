@@ -9,11 +9,11 @@ function AuthAside() {
       <p className="auth-aside__eq">x² + px + q = 0</p>
       <h2>Әр сабақтан кейін сенің балың өсіп отырады</h2>
       <ul>
-        <li><Icon name="play_lesson" size={20} />11 бөлім, 100+ видеосабақ</li>
+        <li><Icon name="play_lesson" size={20} />13 бөлім, 109 сабақ</li>
         <li><Icon name="quiz" size={20} />Әр тақырыптан кейін мини-тест</li>
         <li><Icon name="monitoring" size={20} />Апталық сынақ пен өсім графигі</li>
       </ul>
-      <p className="auth-aside__note">Тіркелгеннен кейін бірінші сабақ пен деңгейді анықтайтын тест бірден ашылады.</p>
+      <p className="auth-aside__note">Төлем расталғаннан кейін сабақтар мен тесттер ашылады.</p>
     </aside>
   );
 }

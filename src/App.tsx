@@ -10,7 +10,10 @@ import { LoginPage, RegisterPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProgramPage } from "./pages/ProgramPage";
 import { LessonRedirect, StudyLessonPage } from "./pages/StudyLessonPage";
-import { TestPage, TestRedirect } from "./pages/TestPage";
+import { TestPage } from "./pages/TestPage";
+import { ExamListPage } from "./pages/ExamListPage";
+import { ExamTestPage } from "./pages/ExamTestPage";
+import { AdminExamEditorPage } from "./pages/AdminExamEditorPage";
 import "./styles/global.css";
 import "./styles/phone.css";
 import "./styles/polish.css";
@@ -30,12 +33,15 @@ export function App() {
           <Route path="/course" element={<Guard><ProgramPage /></Guard>} />
           <Route path="/lesson" element={<Guard><LessonRedirect /></Guard>} />
           <Route path="/lesson/:lessonId" element={<Guard><StudyLessonPage /></Guard>} />
-          <Route path="/tests" element={<Guard><TestRedirect /></Guard>} />
+          <Route path="/tests" element={<Guard><ExamListPage /></Guard>} />
+          <Route path="/tests/exam/:examId" element={<Guard><ExamTestPage /></Guard>} />
           <Route path="/tests/lesson/:lessonId" element={<Guard><TestPage /></Guard>} />
           <Route path="/tests/:sectionId" element={<Guard><TestPage /></Guard>} />
           <Route path="/profile" element={<Guard><AccountPage /></Guard>} />
           <Route path="/admin" element={<Guard admin><AdminPage /></Guard>} />
           <Route path="/admin/courses/:id" element={<Guard admin><CourseEditorPage /></Guard>} />
+          <Route path="/admin/exams/new" element={<Guard admin><AdminExamEditorPage /></Guard>} />
+          <Route path="/admin/exams/:id" element={<Guard admin><AdminExamEditorPage /></Guard>} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>

@@ -685,7 +685,7 @@ img { max-width: 100%; display: block; }
 }
 
 .app__main { margin-left: 256px; padding: 64px 32px 24px; min-height: 100vh; }
-.app__main--flush { padding: 64px 0 0; }
+.app__main--flush { padding: 64px 0 96px; }
 .tabbar { display: none; }
 
 /* ───────────────────────── Cabinet ───────────────────────── */
@@ -726,8 +726,10 @@ img { max-width: 100%; display: block; }
   box-shadow: var(--sh-lg);
 }
 .cab-hero > * { position: relative; }
-.cab-hero__blob { position: absolute; width: 256px; height: 256px; left: 424px; top: -48px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); filter: blur(40px); }
-.cab-hero__art { position: absolute; width: 220px; height: 180px; right: 16px; bottom: 16px; opacity: 0.1; }
+.cab-hero > .cab-hero__blob,
+.cab-hero > .cab-hero__art { position: absolute; }
+.cab-hero__blob { width: 256px; height: 256px; left: 424px; top: -48px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); filter: blur(40px); }
+.cab-hero__art { width: 220px; height: 180px; right: 16px; bottom: 16px; opacity: 0.1; }
 .cab-hero__tag {
   display: inline-flex;
   align-items: center;

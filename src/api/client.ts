@@ -4,8 +4,11 @@ import type {
   CourseSummary,
   CourseView,
   EditCourse,
+  EditExam,
   EditSection,
   EnrollmentInfo,
+  ExamSummary,
+  ExamView,
   LessonView,
   Material,
   QuizSubmitResult,
@@ -128,6 +131,21 @@ export const api = {
     return request<QuizView>(`/courses/${enc(key)}/lessons/${enc(lessonId)}/quiz`);
   },
 
+  exams() {
+    return request<{ exams: ExamSummary[] }>("/exams");
+  },
+
+  exam(id: string) {
+    return request<ExamView>(`/exams/${enc(id)}`);
+  },
+
+  submitExam(id: string, picks: number[]) {
+    return request<QuizSubmitResult>(`/exams/${enc(id)}`, {
+      method: "POST",
+      body: JSON.stringify({ picks }),
+    });
+  },
+
   submitLessonQuiz(key: string, lessonId: string, picks: number[]) {
     return request<QuizSubmitResult>(`/courses/${enc(key)}/lessons/${enc(lessonId)}/quiz`, {
       method: "POST",
@@ -211,6 +229,25 @@ export const api = {
       throw new Error(data.error || (res.status === 413 ? "Файл больше 20 МБ" : `Ошибка загрузки ${res.status}`));
     }
     return { ...data.file, id: uid() };
+  },
+
+  adminExams() {
+    return request<{ exams: ExamSummary[] }>("/admin/exams");
+  },
+
+  adminExam(id: string) {
+    return request<{ exam: ExamSummary & EditExam }>(`/admin/exams/${enc(id)}`);
+  },
+
+  adminSaveExam(id: string | null, body: EditExam) {
+    return request<{ ok: boolean; exam: ExamSummary & EditExam }>(id ? `/admin/exams/${enc(id)}` : "/admin/exams", {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify(body),
+    });
+  },
+
+  adminDeleteExam(id: string) {
+    return request<{ ok: boolean }>(`/admin/exams/${enc(id)}`, { method: "DELETE" });
   },
 
   adminUsers() {
