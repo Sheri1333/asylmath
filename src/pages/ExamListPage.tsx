@@ -6,10 +6,15 @@ import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
 import type { ExamSummary } from "../types/course";
 
+const months = [
+  "қаңтар", "ақпан", "наурыз", "сәуір", "мамыр", "маусым",
+  "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан",
+];
+
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d) return iso;
-  return new Date(y, m - 1, d).toLocaleDateString("kk-KZ", { day: "numeric", month: "long", year: "numeric" });
+  if (!y || !m || !d || m < 1 || m > 12) return iso;
+  return `${d} ${months[m - 1]} ${y}`;
 }
 
 export function ExamListPage() {
