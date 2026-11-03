@@ -11,10 +11,10 @@ const months = [
   "шілде", "тамыз", "қыркүйек", "қазан", "қараша", "желтоқсан",
 ];
 
-function fmtDate(iso: string) {
+function splitDate(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
-  if (!y || !m || !d || m < 1 || m > 12) return iso;
-  return `${d} ${months[m - 1]} ${y}`;
+  if (!y || !m || !d || m < 1 || m > 12) return { day: iso, month: "", year: "" };
+  return { day: String(d), month: months[m - 1], year: String(y) };
 }
 
 export function ExamListPage() {
@@ -64,34 +64,43 @@ export function ExamListPage() {
             {items.map((ex) => {
               const done = Boolean(ex.result);
               const ok = Boolean(ex.result?.passed);
+              const { day, month, year } = splitDate(ex.date);
+              const status = !done ? "new" : ok ? "ok" : "bad";
+              const statusLabel = !done
+                ? "Жаңа"
+                : ok
+                  ? `${ex.result!.best}/${ex.result!.total} · өтті`
+                  : `${ex.result!.best}/${ex.result!.total} · қайталау`;
+              const cta = done ? (ok ? "Нәтиже" : "Қайталау") : "Бастау";
+
               return (
-                <li key={ex.id} className="exam-card">
-                  <div className="exam-card__date">
-                    <Icon name="calendar_month" size={22} />
-                    <div>
-                      <strong>{fmtDate(ex.date)}</strong>
-                      <small>{ex.questionCount} сұрақ · шек {ex.passPercent}%</small>
+                <li key={ex.id}>
+                  <Link
+                    to={`/tests/exam/${ex.id}`}
+                    className={`exam-card exam-card--${status}`}
+                  >
+                    <time className="exam-card__cal" dateTime={ex.date} aria-label={`${day} ${month} ${year}`}>
+                      <b>{day}</b>
+                      <span>{month}</span>
+                    </time>
+
+                    <div className="exam-card__body">
+                      <div className="exam-card__top">
+                        <h2>{ex.title}</h2>
+                        <em className={`exam-card__status exam-card__status--${status}`}>{statusLabel}</em>
+                      </div>
+                      {ex.description && <p>{ex.description}</p>}
+                      <div className="exam-card__meta">
+                        <span>{ex.questionCount} сұрақ</span>
+                        <span>шек {ex.passPercent}%</span>
+                        {ex.timeLimitMinutes > 0 && <span>{ex.timeLimitMinutes} мин</span>}
+                      </div>
                     </div>
-                  </div>
-                  <div className="exam-card__body">
-                    <h2>{ex.title}</h2>
-                    {ex.description && <p>{ex.description}</p>}
-                    <div className="exam-card__meta">
-                      {ex.timeLimitMinutes > 0 && (
-                        <span><Icon name="timer" size={16} />{ex.timeLimitMinutes} мин</span>
-                      )}
-                      {done && (
-                        <span className={ok ? "ok" : "bad"}>
-                          <Icon name={ok ? "check_circle" : "error"} size={16} fill={ok} />
-                          {ex.result!.best}/{ex.result!.total}
-                          {ok ? " · өтті" : " · қайталау керек"}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Link to={`/tests/exam/${ex.id}`} className="qz-next">
-                    {done ? "Нәтиже / қайталау" : "Тестті бастау"}
-                    <Icon name="arrow_forward" size={16} />
+
+                    <span className="exam-card__cta">
+                      {cta}
+                      <Icon name="arrow_forward" size={16} />
+                    </span>
                   </Link>
                 </li>
               );
