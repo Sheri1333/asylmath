@@ -203,6 +203,7 @@ a.prog__row:hover { background: var(--lav); }
   font: inherit;
   color: inherit;
   line-height: 1.55;
+  text-align: left;
 }
 .md.md--quiz > p {
   display: block;
@@ -210,14 +211,24 @@ a.prog__row:hover { background: var(--lav); }
   font: inherit;
   color: inherit;
   line-height: inherit;
+  text-align: left;
 }
 .md.md--quiz > p + p { margin-top: 10px; }
-.md.md--quiz .math { display: inline; vertical-align: middle; }
+.md.md--quiz .math {
+  display: inline;
+  vertical-align: middle;
+  text-align: left;
+}
+/* cases/matrices only — never center quiz formulas */
 .md.md--quiz .math--block {
   display: block;
   margin: 10px 0;
-  text-align: center;
+  text-align: left;
   overflow-x: auto;
+}
+.md.md--quiz .katex-display {
+  margin: 0.4em 0;
+  text-align: left;
 }
 .md.md--quiz > .math-frame { display: inline; margin: 0 2px; vertical-align: baseline; }
 .md.md--quiz > ul,
@@ -227,6 +238,8 @@ a.prog__row:hover { background: var(--lav); }
 .md.md--quiz > aside,
 .md.md--quiz > h3,
 .md.md--quiz > h4 { display: block; margin: 8px 0; }
+.qz-q__text.rich,
+.qm-q__text.rich { text-align: left; }
 .qz-q__text.rich .md.md--quiz,
 .qm-q__text.rich .md.md--quiz { display: inline; }
 .qz-q__text.rich .md.md--quiz > p,
@@ -235,9 +248,29 @@ a.prog__row:hover { background: var(--lav); }
 .qm-q__text.rich .md.md--quiz > p .math--block {
   display: block;
   margin: 10px 0;
+  text-align: left;
 }
 .qz-q__n { font: 700 16px/24px var(--head); color: var(--navy); }
-.qz-opts__t, .qm-opts .t { min-width: 0; overflow-x: auto; }
+.qz-opts__t, .qm-opts .t {
+  min-width: 0;
+  overflow-x: auto;
+  text-align: left;
+}
+.qz-opts__t .math,
+.qz-opts__t .math--block,
+.qm-opts .t .math,
+.qm-opts .t .math--block {
+  display: inline;
+  margin: 0;
+  text-align: left;
+  vertical-align: middle;
+}
+.qz-opts__t .katex-display,
+.qm-opts .t .katex-display {
+  display: inline;
+  margin: 0;
+  text-align: left;
+}
 .qm-banner .katex, .qm-banner .katex-display { color: #fff; }
 .qm-banner .katex-display { margin: 0; }
 .les-md { padding: 4px 0 0; background: none; box-shadow: none; border-radius: 0; }

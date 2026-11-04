@@ -204,8 +204,8 @@ function Board({ tex, caption, plain }: { tex: string; caption?: string; plain?:
  */
 function normalizeQuizPrompt(text: string): string {
   let t = text.replace(/\r\n/g, "\n").trim();
-  t = t.replace(/(^|\n)\s*\.(?=\$\$?)/g, "$1");
-  t = t.replace(/^\.(?=\$)/, "");
+  // Paste artifacts: leading "." glued to math (".$$a_1=…", ". $…$")
+  t = t.replace(/(^|\n)\s*\.+[ \t]*(?=\$)/g, "$1");
   t = t.replace(/\$\$([\s\S]+?)\$\$/g, (_m, inner: string) => {
     const body = String(inner).trim();
     if (/\\begin\{(?:cases|gathered|aligned|align\*?|matrix|pmatrix|bmatrix|vmatrix)\}/.test(body)) {
@@ -213,6 +213,8 @@ function normalizeQuizPrompt(text: string): string {
     }
     return `$${body}$`;
   });
+  // Orphan "." left if math was the only thing after it
+  t = t.replace(/(^|\n)\s*\.(?=\s*[^\s.$])/g, "$1");
   return t
     .split(/\n{2,}/)
     .map((para) => para.replace(/[ \t]*\n[ \t]*/g, " ").replace(/ {2,}/g, " ").trim())

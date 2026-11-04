@@ -54,6 +54,6 @@ export function FormulaOrText({ text, display = false }: { text: string; display
 export function ChoiceMath({ text }: { text: string }) {
   const raw = text.trim();
   if (!raw) return null;
-  if (raw.includes("$")) return <MathText text={raw} />;
+  if (raw.includes("$")) return <MathText text={raw} preferInline />;
   return <FormulaOrText text={raw} />;
 }
