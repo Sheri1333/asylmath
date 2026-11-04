@@ -319,7 +319,7 @@ export function LandingPage() {
           <div className="lp-wrap">
             <div className="lp-dark lp-teacher" data-reveal>
               <figure className="lp-teacher__photo">
-                <img src="/assets/teacher.png" alt="Асылай Арыстанбекова" loading="lazy" />
+                <img src="/assets/teacher.jpg" alt="Асылай Арыстанбекова" loading="lazy" />
                 <span className="lp-float lp-float--b"><i />ҰБТ сарапшысы</span>
                 <span className="lp-float lp-float--c"><Icon name="verified" size={16} />ҰБТ 139 ұпай</span>
               </figure>

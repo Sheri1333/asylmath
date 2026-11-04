@@ -225,7 +225,7 @@
 
 .lp-teacher { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 48px; align-items: center; }
 .lp-teacher__photo { position: relative; margin: 0; }
-.lp-teacher__photo img { width: 100%; aspect-ratio: 4 / 4.4; object-fit: cover; object-position: 55% center; border-radius: 24px; }
+.lp-teacher__photo img { width: 100%; aspect-ratio: 4 / 4.4; object-fit: cover; object-position: center 18%; border-radius: 24px; }
 .lp-float--b { left: -14px; top: 22px; }
 .lp-float--c { right: -14px; bottom: 26px; }
 .lp-teacher__text { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
