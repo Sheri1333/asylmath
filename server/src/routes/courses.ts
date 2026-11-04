@@ -99,7 +99,7 @@ coursesRouter.get("/:key/lessons/:lessonId", authRequired, async (req: AuthedReq
   const section = sections[lesson.sectionIndex];
   res.json({
     course: publicCourse(row),
-    section: { id: section.id, title: section.title, order: lesson.sectionIndex + 1, hasQuiz: section.quiz.questions.length > 0 },
+    section: { id: section.id, title: section.title, order: lesson.sectionIndex, hasQuiz: section.quiz.questions.length > 0 },
     lesson: {
       id: lesson.id,
       title: lesson.title,
@@ -211,7 +211,7 @@ coursesRouter.get("/:key/sections/:sectionId/quiz", authRequired, async (req: Au
   res.json({
     course: publicCourse(row),
     scope: "section",
-    section: { id: section.id, title: section.title, order: index + 1 },
+    section: { id: section.id, title: section.title, order: index },
     lesson: null,
     nextSection: sections[index + 1] ? { id: sections[index + 1].id, title: sections[index + 1].title } : null,
     nextLessonId: null,
@@ -275,7 +275,7 @@ coursesRouter.get("/:key/lessons/:lessonId/quiz", authRequired, async (req: Auth
   res.json({
     course: publicCourse(row),
     scope: "lesson",
-    section: { id: section.id, title: section.title, order: lesson.sectionIndex + 1 },
+    section: { id: section.id, title: section.title, order: lesson.sectionIndex },
     lesson: { id: lesson.id, title: lesson.title },
     nextSection: null,
     nextLessonId: nextOpen ? next!.id : null,

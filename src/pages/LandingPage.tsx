@@ -40,10 +40,11 @@ const why = [
 ];
 
 const steps = [
-  { icon: "person", title: "Тіркел", text: "Аккаунт ашып, Kaspi төлемін жіберіңіз. Расталған соң сабақтар ашылады." },
+  { icon: "person", title: "Тіркел", text: "Аккаунт ашып, курсты төлеңіз. Расталған соң барлық сабақтар ашылады." },
   { icon: "play_circle", title: "Сабақты көр", text: "Видео мен конспект: әр тақырып қарапайым тілде." },
   { icon: "quiz", title: "Тест тапсыр", text: "Әр сабақтан кейін тест білімді бекітеді." },
   { icon: "emoji_events", title: "Балыңды көтер", text: "Қателерді талда, әлсіз тақырыптарды қайтала." },
+  { icon: "videocam", title: "Пробный сынақ", text: "Әр 10 күн сайын толық пробный тест және қателермен жұмыс видеосы." },
 ];
 
 const perks = [
@@ -246,17 +247,11 @@ export function LandingPage() {
           </div>
 
           <div className="lp-wrap">
-            <div className="lp-stats" data-reveal>
-              {[
-                { icon: "group", v: "1 500+", l: "оқушы дайындалды" },
-                { icon: "verified", v: "46.8 / 50", l: "түлектердің орташа балы" },
-                { icon: "school", v: "94%", l: "грантқа түсті" },
-              ].map((s) => (
-                <div key={s.l}>
-                  <span className="lp-tile"><Icon name={s.icon} size={20} /></span>
-                  <p><b>{s.v}</b><small>{s.l}</small></p>
-                </div>
-              ))}
+            <div className="lp-stats lp-stats--one" data-reveal>
+              <div>
+                <span className="lp-tile"><Icon name="group" size={20} /></span>
+                <p><b>1 500+</b><small>оқушы дайындалды</small></p>
+              </div>
             </div>
           </div>
         </section>
@@ -312,7 +307,7 @@ export function LandingPage() {
             <Head pill="Оқу форматы" sub="Тіркелгеннен ҰБТ-ға дейін: әр қадамда не істейтінің түсінікті.">
               Курс <span className="lp-grad">қалай өтеді?</span>
             </Head>
-            <div className="lp-cards4">
+            <div className="lp-cards4 lp-cards5">
               {steps.map((s, i) => (
                 <article key={s.title} className="lp-card lp-step" data-reveal style={{ transitionDelay: `${i * 70}ms` }}>
                   <span className={`lp-tile lp-tile--g${i}`}><Icon name={s.icon} size={22} /></span>
@@ -339,8 +334,6 @@ export function LandingPage() {
                 <p>Назарбаев Университетінің түлегі. Күрделі математикалық ұғымдарды визуалды әдіспен және өмірлік мысалдармен түсіндірудің авторлық жүйесін жасаған.</p>
                 <ul className="lp-teacher__stats">
                   <li><b>1 500+</b><small>оқушы дайындады</small></li>
-                  <li><b>46.8</b><small>орташа балл</small></li>
-                  <li><b>94%</b><small>грантқа түсті</small></li>
                 </ul>
                 <Link to={join} className="lp-btn lp-btn--coral">Сабақты бастау<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
               </div>

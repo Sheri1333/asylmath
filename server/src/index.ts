@@ -133,6 +133,10 @@ async function connectLoop(): Promise<void> {
   for (;;) {
     try {
       await connectDb();
+      const { syncProgramTitles } = await import("./programTitles.js");
+      await syncProgramTitles().catch((err) =>
+        console.error("syncProgramTitles:", err instanceof Error ? err.message : err),
+      );
       return;
     } catch (err) {
       console.error(

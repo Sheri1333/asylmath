@@ -136,7 +136,7 @@ export function courseOutline(doc: CourseDoc, enr: EnrollmentDoc | null, isAdmin
       id: s.id,
       title: s.title,
       description: s.description,
-      order: i + 1,
+      order: i,
       open,
       lessons: s.lessons.map((l) => ({
         id: l.id,
@@ -260,7 +260,7 @@ export function cleanSections(input: unknown): SectionDoc[] {
       id: id(o.id),
       title,
       description: str(o.description, 20000),
-      order: i + 1,
+      order: i,
       lessons: (Array.isArray(o.lessons) ? o.lessons : []).map((l, j) => cleanLesson(l, j + 1)),
       quiz: cleanQuiz(o.quiz, `«${title}»`, 20),
     };

@@ -170,8 +170,8 @@ export function ExamTestPage() {
           <h2>{outcome.passed ? "Тест сәтті тапсырылды!" : "Шекке әлі жетпеді"}</h2>
           <p>
             {outcome.passed
-              ? "Толық сынақ аяқталды. Төменде қателермен жұмыс және түсіндірмелер."
-              : `Өту үшін кемінде ${need} дұрыс жауап керек. Қателерді қарап, қайта тапсырыңыз.`}
+              ? "Толық сынақ аяқталды. Төменде қателермен жұмыс видеосы."
+              : `Өту үшін кемінде ${need} дұрыс жауап керек. Видеоны қарап, қайта тапсырыңыз.`}
           </p>
           <div className="qz-res__acts">
             <button type="button" className="qz-next" onClick={restart}>Қайта тапсыру<Icon name="arrow_forward" size={16} /></button>
@@ -222,12 +222,6 @@ export function ExamTestPage() {
                 );
               })}
             </div>
-            {r?.explanation && (
-              <div className="qz-errors">
-                <strong>{r.pick === r.answer ? "Түсіндірме" : "Қателермен жұмыс"}</strong>
-                <Markdown text={r.explanation} plain />
-              </div>
-            )}
           </article>
         );
       })}

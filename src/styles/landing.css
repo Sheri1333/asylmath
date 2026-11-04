@@ -88,6 +88,7 @@
 .lp-tile--g1 { background: linear-gradient(135deg, #ff8a7a, #f2543f); color: #fff; }
 .lp-tile--g2 { background: linear-gradient(135deg, #6c9dff, #1e6fff); color: #fff; }
 .lp-tile--g3 { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #fff; }
+.lp-tile--g4 { background: linear-gradient(135deg, #34d399, #059669); color: #fff; }
 
 .lp-float {
   position: absolute;
@@ -186,8 +187,10 @@
 .lp-float--a { left: -24px; bottom: -20px; }
 
 .lp-stats { margin-top: 44px; padding: 18px 22px; border-radius: 22px; background: #fff; border: 1px solid var(--line); display: grid; grid-template-columns: repeat(3, 1fr); }
+.lp-stats--one { grid-template-columns: 1fr; max-width: 360px; }
 .lp-stats > div { display: flex; align-items: center; gap: 14px; padding: 4px 18px; }
 .lp-stats > div + div { border-left: 1px solid var(--line); }
+.lp-stats--one > div { padding: 4px 8px; }
 .lp-stats b { display: block; font: 800 26px/1 var(--font); letter-spacing: -0.6px; color: var(--ink); }
 .lp-stats small { display: block; margin-top: 6px; font: 500 13.5px/1.3 var(--font); color: var(--txt); }
 
@@ -200,6 +203,7 @@
 .lp-head-block.dark p { color: rgba(255, 255, 255, 0.72); }
 
 .lp-cards4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.lp-cards5 { grid-template-columns: repeat(5, 1fr); }
 .lp-card { position: relative; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: 22px; padding: 28px 24px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.2s, transform 0.2s; }
 .lp-card:hover { border-color: #d6e1ff; }
 .lp-card h3 { margin-top: 8px; font: 800 18px/1.25 var(--font); letter-spacing: -0.3px; color: var(--ink); }
@@ -277,7 +281,7 @@
 
 /* ── Responsive ── */
 @media (max-width: 1080px) {
-  .lp-cards4 { grid-template-columns: repeat(2, 1fr); }
+  .lp-cards4, .lp-cards5 { grid-template-columns: repeat(2, 1fr); }
   .lp-chapters { grid-template-columns: repeat(2, 1fr); }
   .lp-nav a { padding: 10px 10px; }
 }
@@ -305,7 +309,7 @@
   .lp-stats { grid-template-columns: 1fr; padding: 8px 16px; }
   .lp-stats > div { padding: 14px 4px; }
   .lp-stats > div + div { border-left: 0; border-top: 1px solid var(--line); }
-  .lp-cards4, .lp-chapters { grid-template-columns: 1fr; }
+  .lp-cards4, .lp-cards5, .lp-chapters { grid-template-columns: 1fr; }
   .lp-sec { padding-top: 56px; }
   .lp-head-block { margin-bottom: 28px; }
   .lp-price__list, .lp-price__box { padding: 24px; }
