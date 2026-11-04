@@ -235,7 +235,11 @@ export function ExamTestPage() {
               {needsRich(item.prompt) ? <span className="qz-q__n">{i + 1}.</span> : <>{i + 1}. </>}
               <QText text={item.prompt} />
             </div>
-            {item.description && <p className="exam-q__desc">{item.description}</p>}
+            {item.description && (
+              <div className="exam-q__desc">
+                {needsRich(item.description) ? <Markdown text={item.description} plain /> : item.description}
+              </div>
+            )}
             {item.imageUrl && (
               <figure className="exam-q__img">
                 <img src={item.imageUrl} alt="" />
@@ -314,7 +318,11 @@ export function ExamTestPage() {
                 <small><Icon name="star" size={16} color="var(--orange)" />1 ұпай</small>
               </header>
               <div className={`qm-q__text${needsRich(q.prompt) ? " rich" : ""}`}><QText text={q.prompt} /></div>
-              {q.description && <p className="exam-q__desc">{q.description}</p>}
+              {q.description && (
+                <div className="exam-q__desc">
+                  {needsRich(q.description) ? <Markdown text={q.description} plain /> : q.description}
+                </div>
+              )}
               {q.imageUrl && (
                 <figure className="exam-q__img">
                   <img src={q.imageUrl} alt="" />
@@ -397,7 +405,11 @@ export function ExamTestPage() {
                   </button>
                 </header>
                 <div className={`qz-q__text${needsRich(q.prompt) ? " rich" : ""}`}><QText text={q.prompt} /></div>
-                {q.description && <p className="exam-q__desc">{q.description}</p>}
+                {q.description && (
+                <div className="exam-q__desc">
+                  {needsRich(q.description) ? <Markdown text={q.description} plain /> : q.description}
+                </div>
+              )}
                 {q.imageUrl && (
                   <figure className="exam-q__img">
                     <img src={q.imageUrl} alt="" />

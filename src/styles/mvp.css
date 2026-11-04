@@ -193,9 +193,21 @@ a.prog__row:hover { background: var(--lav); }
 .prog__desc .md { color: var(--ink); font-size: 15px; line-height: 24px; }
 .qz-eq .katex, .qm-banner .katex, .ced-formula .katex { font-size: 1.2em; }
 .ced-formula { display: block; margin-top: 0; padding: 10px 12px; border-radius: 12px; background: #fff; overflow-x: auto; }
-.qz-q__text.rich, .qm-q__text.rich { display: flex; flex-direction: column; gap: 8px; }
-.qz-q__text .md, .qm-q__text .md { font: inherit; color: inherit; gap: 8px; }
-.qz-q__text .md p, .qm-q__text .md p { font: inherit; color: inherit; }
+.qz-q__text.rich, .qm-q__text.rich { display: block; }
+.qz-q__text .qz-q__n, .qm-q__text .qm-q__n { display: inline; margin-right: 6px; font-weight: 700; }
+.qz-q__text .md, .qm-q__text .md { font: inherit; color: inherit; display: inline; gap: 0; }
+.qz-q__text .md p, .qm-q__text .md p { font: inherit; color: inherit; display: inline; margin: 0; }
+.md.md--quiz { display: block; gap: 0; }
+.md.md--quiz > p { display: inline; margin: 0; }
+.md.md--quiz > p + p::before { content: " "; }
+.md.md--quiz > .math-frame { display: inline; margin: 0 2px; vertical-align: baseline; }
+.md.md--quiz > ul,
+.md.md--quiz > ol,
+.md.md--quiz > .md-table-wrap,
+.md.md--quiz > .lesson-photo,
+.md.md--quiz > aside,
+.md.md--quiz > h3,
+.md.md--quiz > h4 { display: block; margin: 8px 0; }
 .qz-q__n { font: 700 16px/24px var(--head); color: var(--navy); }
 .qz-opts__t, .qm-opts .t { min-width: 0; overflow-x: auto; }
 .qm-banner .katex, .qm-banner .katex-display { color: #fff; }
@@ -499,6 +511,8 @@ a.exam-card:hover .exam-card__cta { background: var(--navy); color: #fff; }
   transition: background 0.15s ease, color 0.15s ease;
 }
 .exam-q__desc { margin: 8px 0 0; font: 400 15px/22px var(--text); color: var(--muted); }
+.exam-q__desc .md.md--quiz { display: inline; font: inherit; color: inherit; }
+.exam-q__desc .md.md--quiz > p { display: inline; margin: 0; font: inherit; color: inherit; }
 .exam-q__img { margin: 14px 0 4px; border-radius: 14px; overflow: hidden; background: var(--soft); }
 .exam-q__img img { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #fff; }
 .exam-review-video { display: flex; flex-direction: column; gap: 14px; }

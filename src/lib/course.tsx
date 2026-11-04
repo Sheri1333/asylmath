@@ -198,9 +198,65 @@ function Board({ tex, caption, plain }: { tex: string; caption?: string; plain?:
   );
 }
 
+/** Quiz/exam prompts: keep $\\vec{AB}$ and words on one line instead of board stacks. */
+function coalesceQuizPrompt(text: string): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (!run.length) return;
+    out.push(joinQuizRun(run));
+    run = [];
+  };
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) {
+      flush();
+      out.push("");
+      continue;
+    }
+    const onlyMath = /^\$\$?[^$\n]+\$\$?$/.test(line);
+    const short = line.length < 80 && !/^#{1,3}\s/.test(line) && !isQuizBreak(line);
+    if (onlyMath || (run.length && short)) {
+      run.push(line);
+      continue;
+    }
+    flush();
+    run.push(line);
+  }
+  flush();
+  return out.join("\n");
+}
+
+function isQuizBreak(line: string): boolean {
+  return /^(?:[-*]|•|·|\d+\.)\s+/.test(line) || /^```/.test(line) || /^!\[/.test(line);
+}
+
+function joinQuizRun(parts: string[]): string {
+  let out = "";
+  for (const part of parts) {
+    if (!out) {
+      out = part;
+      continue;
+    }
+    out += /^[,.;:!?…]/.test(part) || out.endsWith("-") ? part : ` ${part}`;
+  }
+  return out.replace(/ +/g, " ").trim();
+}
+
 export function Markdown({ text, plain = false }: { text: string; plain?: boolean }) {
-  const blocks = parseLesson(text).map((block, k) => {
-    if (block.kind === "board") return <Board key={k} tex={block.tex} caption={block.caption} plain={plain} />;
+  const source = plain ? coalesceQuizPrompt(text) : text;
+  const blocks = parseLesson(source).map((block, k) => {
+    if (block.kind === "board") {
+      if (plain) {
+        return (
+          <span key={k} className="math-frame math-frame--inline">
+            <Formula tex={block.tex} />
+          </span>
+        );
+      }
+      return <Board key={k} tex={block.tex} caption={block.caption} plain={plain} />;
+    }
     if (block.kind === "chart") return <Chart key={k} raw={block.raw} />;
     if (block.kind === "image")
       return (
