@@ -2,7 +2,7 @@ import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { examAttempts, exams, toObjectId, type ExamAttemptDoc, type ExamDoc, type QuizDoc } from "../db.js";
 import { authRequired, type AuthedRequest } from "../auth.js";
-import { fullExam, publicExam, publicExamQuestions } from "../exam.js";
+import { examReview, fullExam, publicExam, publicExamQuestions } from "../exam.js";
 
 export const examsRouter = Router();
 
@@ -60,12 +60,7 @@ examsRouter.get("/:id", authRequired, async (req: AuthedRequest, res) => {
   const result = attempt
     ? {
         ...attemptView(attempt, row)!,
-        review: row.questions.map((q, i) => ({
-          id: q.id,
-          pick: attempt.lastPicks?.[i] ?? -1,
-          answer: q.answer,
-          explanation: q.explanation,
-        })),
+        review: examReview(row, attempt.lastPicks ?? []),
         reviewVideoUrl: row.reviewVideoUrl || null,
       }
     : null;
@@ -121,12 +116,7 @@ examsRouter.post("/:id", authRequired, async (req: AuthedRequest, res) => {
     passed,
     passPercent: row.passPercent,
     reviewVideoUrl: row.reviewVideoUrl || null,
-    review: row.questions.map((q, i) => ({
-      id: q.id,
-      pick: graded.picks[i],
-      answer: q.answer,
-      explanation: q.explanation,
-    })),
+    review: examReview(row, graded.picks),
   });
 });
 

@@ -506,6 +506,67 @@ a.exam-card:hover .exam-card__cta { background: var(--navy); color: #fff; }
 .exam-review-video h3 { margin: 0; font: 700 18px/24px var(--head); color: var(--ink); }
 .exam-review-video p { margin: 2px 0 0; font: 400 14px/20px var(--text); color: var(--muted); }
 .exam-review-video__player { position: relative; width: 100%; max-width: 720px; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #283044; }
+.exam-review-video--inline { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.exam-review-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--sh-sm);
+}
+.exam-review-bar strong { display: block; font: 700 16px/22px var(--head); color: var(--ink); }
+.exam-review-bar span { font: 500 13px/18px var(--text); color: var(--muted); }
+.exam-review-bar__tog { display: inline-flex; gap: 4px; padding: 4px; border-radius: 9999px; background: var(--soft2); }
+.exam-review-bar__tog button {
+  border: 0;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  font: 700 13px/1 var(--text);
+  color: var(--muted);
+  cursor: pointer;
+}
+.exam-review-bar__tog button.on { background: #fff; color: var(--navy); box-shadow: var(--sh-sm); }
+.exam-review-qhead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.exam-review-qhead .bad { font: 700 12px/16px var(--text); color: var(--brown); }
+.exam-review-qhead .ok { font: 700 12px/16px var(--text); color: var(--teal); }
+.exam-review-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: var(--lav);
+  color: var(--navy);
+  padding: 8px 12px;
+  border-radius: 9999px;
+  font: 700 13px/1 var(--text);
+  cursor: pointer;
+}
+.exam-review-play:hover { background: var(--navy); color: #fff; }
+.qz-after--bad { box-shadow: var(--sh-sm), 0 0 0 1px rgba(180, 83, 9, 0.18); }
+.exam-review-missing { margin: 12px 0 0; font: 500 13px/18px var(--text); color: var(--muted); }
+.ced-review-video { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font: 600 12px/16px var(--text); color: var(--muted); }
+.ced-review-video input {
+  border: 1px solid var(--lav);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: 400 14px/20px var(--text);
+  color: var(--ink);
+}
+.ced-review-video input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px var(--lav3); outline: none; }
+.ced-review-video small { font: 500 12px/16px var(--text); color: var(--muted); }
+.ced-review-video small.ok { color: var(--teal); display: inline-flex; align-items: center; gap: 4px; }
 .ced-exam-photo { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 4px; font: 600 12px/16px var(--text); letter-spacing: 0.24px; color: var(--muted); }
 .ced-exam-photo__preview { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .ced-exam-photo__preview img { max-width: 280px; max-height: 180px; border-radius: 12px; object-fit: cover; box-shadow: 0 0 0 1px var(--line); }

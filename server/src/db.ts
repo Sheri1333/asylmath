@@ -154,6 +154,8 @@ export interface ExamQuestionDoc {
   choices: string[];
   answer: number;
   explanation: string;
+  /** YouTube разбор этого вопроса (работа над ошибками). */
+  reviewVideoUrl?: string;
   level: QuestionLevel;
 }
 
@@ -166,7 +168,7 @@ export interface ExamDoc {
   passPercent: number;
   timeLimitMinutes: number;
   published: boolean;
-  /** YouTube «работа над ошибками» shown after the student finishes the whole test. */
+  /** Optional fallback YouTube if a question has no own reviewVideoUrl. */
   reviewVideoUrl: string;
   questions: ExamQuestionDoc[];
   createdAt: Date;

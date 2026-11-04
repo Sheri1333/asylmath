@@ -113,6 +113,8 @@ export interface ReviewItem {
   pick: number;
   answer: number;
   explanation: string;
+  /** Per-question YouTube for error review (exams). */
+  reviewVideoUrl?: string | null;
 }
 
 export interface QuizView {
@@ -163,6 +165,8 @@ export interface EditExamQuestion {
   choices: string[];
   answer: number;
   explanation: string;
+  /** YouTube разбор этого вопроса. */
+  reviewVideoUrl: string;
   level: QuestionLevel;
 }
 

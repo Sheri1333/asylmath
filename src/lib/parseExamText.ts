@@ -43,6 +43,7 @@ function flush(d: Draft | null, out: EditExamQuestion[]) {
     choices: padded.slice(0, 6),
     answer: Math.max(0, Math.min(d.answer, padded.length - 1)),
     explanation: "",
+    reviewVideoUrl: "",
     level: d.level,
   });
 }

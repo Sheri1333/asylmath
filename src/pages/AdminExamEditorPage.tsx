@@ -18,6 +18,7 @@ const blankQ = (): EditExamQuestion => ({
   choices: ["", "", "", ""],
   answer: 0,
   explanation: "",
+  reviewVideoUrl: "",
   level: "mid",
 });
 
@@ -92,6 +93,7 @@ export function AdminExamEditorPage() {
           description: q.description ?? "",
           imageUrl: q.imageUrl ?? "",
           explanation: "",
+          reviewVideoUrl: q.reviewVideoUrl ?? "",
         })),
       });
     } catch (e) {
@@ -138,7 +140,11 @@ export function AdminExamEditorPage() {
         reviewVideoUrl: normalizeVideoUrl(form.reviewVideoUrl) || form.reviewVideoUrl.trim(),
         questions: form.questions
           .filter((q) => q.prompt.trim() && q.choices.filter((c) => c.trim()).length >= 2)
-          .map((q) => ({ ...q, explanation: "" })),
+          .map((q) => ({
+            ...q,
+            explanation: "",
+            reviewVideoUrl: normalizeVideoUrl(q.reviewVideoUrl) || q.reviewVideoUrl.trim(),
+          })),
       };
       if (!body.title.trim()) throw new Error("Укажите название теста");
       if (!body.date) throw new Error("Укажите дату теста");
@@ -160,6 +166,7 @@ export function AdminExamEditorPage() {
           description: q.description ?? "",
           imageUrl: q.imageUrl ?? "",
           explanation: "",
+          reviewVideoUrl: q.reviewVideoUrl ?? "",
         })),
       });
     } catch (err) {
@@ -206,15 +213,15 @@ export function AdminExamEditorPage() {
             <label className="adm-check"><input type="checkbox" checked={form.published} onChange={(e) => set({ published: e.target.checked })} />Опубликован — виден ученикам</label>
             <label className="wide">Краткое описание<textarea rows={2} value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Что это за тест" /></label>
             <label className="wide">
-              Видео-решение (YouTube) — одно на весь тест
+              Общее видео (запасной вариант)
               <input
                 value={form.reviewVideoUrl}
                 onChange={(e) => set({ reviewVideoUrl: e.target.value })}
-                placeholder="https://youtu.be/… или https://www.youtube.com/watch?v=…"
+                placeholder="https://youtu.be/… — только если у вопроса нет своего"
               />
             </label>
             <p className="adm-muted wide">
-              Ссылку ставьте сюда. После сдачи ученик увидит это видео в блоке «Қателермен жұмыс». Отдельного решения у каждого вопроса нет.
+              Лучше указать YouTube у каждого вопроса ниже. Общее видео показывается только там, где своего нет.
             </p>
           </div>
         </article>
@@ -248,7 +255,10 @@ export function AdminExamEditorPage() {
               <span className="cab-card__ico"><Icon name="help" size={22} /></span>
               <div>
                 <h3>Вопросы</h3>
-                <p>{form.questions.length} вопрос(ов) — можно поправить вручную</p>
+                <p>
+                  {form.questions.length} вопрос(ов) · с видео:{" "}
+                  {form.questions.filter((q) => q.reviewVideoUrl.trim()).length}
+                </p>
               </div>
             </div>
             <button type="button" className="qz-next" onClick={() => set({ questions: [...form.questions, blankQ()] })}>
@@ -333,6 +343,19 @@ export function AdminExamEditorPage() {
                       <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
                     )}
                   </fieldset>
+                  <label className="ced-review-video">
+                    Видео разбора этого вопроса (YouTube)
+                    <input
+                      value={q.reviewVideoUrl}
+                      onChange={(e) => setQ(qi, { reviewVideoUrl: e.target.value })}
+                      placeholder="https://youtu.be/… — ученик увидит при работе над ошибками"
+                    />
+                    {q.reviewVideoUrl.trim() ? (
+                      <small className="ok"><Icon name="check_circle" size={14} /> Видео задано</small>
+                    ) : (
+                      <small>Без ссылки подставится общее видео теста (если оно есть)</small>
+                    )}
+                  </label>
                 </div>
               </li>
             ))}

@@ -48,6 +48,9 @@ export function ExamTestPage() {
   const [left, setLeft] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [sending, setSending] = useState(false);
+  const [mistakesOnly, setMistakesOnly] = useState(true);
+  const [openVideo, setOpenVideo] = useState<string | null>(null);
+  const videoTouched = useRef(false);
   const submitted = useRef(false);
 
   const load = useCallback(async () => {
@@ -61,13 +64,17 @@ export function ExamTestPage() {
       setLeft(d.quiz.timeLimitMinutes * 60);
       submitted.current = false;
       if (d.result) {
+        const rev = d.result.review;
         setOutcome({
           score: d.result.last,
           total: d.result.total,
           passed: d.result.passed,
-          review: d.result.review,
+          review: rev,
           reviewVideoUrl: d.result.reviewVideoUrl ?? (d.exam.reviewVideoUrl || null),
         });
+        videoTouched.current = false;
+        setOpenVideo(rev.find((r) => r.pick !== r.answer && r.reviewVideoUrl)?.id ?? rev.find((r) => r.reviewVideoUrl)?.id ?? null);
+        setMistakesOnly(true);
         setMode("result");
       } else {
         setOutcome(null);
@@ -96,6 +103,9 @@ export function ExamTestPage() {
         review: r.review,
         reviewVideoUrl: r.reviewVideoUrl ?? (data.exam.reviewVideoUrl || null),
       });
+      videoTouched.current = false;
+      setOpenVideo(r.review.find((x) => x.pick !== x.answer && x.reviewVideoUrl)?.id ?? r.review.find((x) => x.reviewVideoUrl)?.id ?? null);
+      setMistakesOnly(true);
       setMode("result");
       window.scrollTo(0, 0);
     } catch (e) {
@@ -158,6 +168,9 @@ export function ExamTestPage() {
     void submit();
   };
 
+  const wrongCount = outcome ? outcome.review.filter((r) => r.pick !== r.answer).length : 0;
+  const withVideo = outcome ? outcome.review.filter((r) => Boolean(r.reviewVideoUrl)).length : 0;
+
   const results = outcome && (
     <div className="qz-res">
       <article className="qz-card qz-res__score">
@@ -168,9 +181,9 @@ export function ExamTestPage() {
         <div>
           <h2>{outcome.passed ? "Тест сәтті тапсырылды!" : "Шекке әлі жетпеді"}</h2>
           <p>
-            {outcome.passed
-              ? "Толық сынақ аяқталды. Төменде қателермен жұмыс видеосы."
-              : `Өту үшін кемінде ${need} дұрыс жауап керек. Видеоны қарап, қайта тапсырыңыз.`}
+            {wrongCount
+              ? `${wrongCount} қате · әр сұрақтың өз видео-түсіндірмесі төменде`
+              : "Барлық жауап дұрыс. Қаласаңыз сұрақтарды қайталап шығыңыз."}
           </p>
           <div className="qz-res__acts">
             <button type="button" className="qz-next" onClick={restart}>Қайта тапсыру<Icon name="arrow_forward" size={16} /></button>
@@ -179,25 +192,45 @@ export function ExamTestPage() {
         </div>
       </article>
 
-      {outcome.reviewVideoUrl && (
-        <article className="qz-card exam-review-video">
-          <header>
-            <Icon name="play_circle" size={22} color="var(--navy)" />
-            <div>
-              <h3>Қателермен жұмыс</h3>
-              <p>Бүкіл тест бойынша мұғалімнің бейне-түсіндірмесі</p>
-            </div>
-          </header>
-          <div className="exam-review-video__player">
-            <VideoFrame url={outcome.reviewVideoUrl} title="Қателермен жұмыс" />
-          </div>
-        </article>
-      )}
+      <div className="exam-review-bar">
+        <div>
+          <strong>Қателермен жұмыс</strong>
+          <span>{withVideo} сұрақта видео бар</span>
+        </div>
+        <div className="exam-review-bar__tog">
+          <button type="button" className={mistakesOnly ? "on" : ""} onClick={() => setMistakesOnly(true)}>
+            Тек қателер{wrongCount ? ` (${wrongCount})` : ""}
+          </button>
+          <button type="button" className={!mistakesOnly ? "on" : ""} onClick={() => setMistakesOnly(false)}>
+            Барлығы
+          </button>
+        </div>
+      </div>
 
       {qs.map((item, i) => {
         const r = outcome.review[i];
+        const wrong = Boolean(r && r.pick !== r.answer);
+        if (mistakesOnly && !wrong) return null;
+        const video = r?.reviewVideoUrl || null;
+        const videoOpen = openVideo === item.id;
         return (
-          <article key={item.id} className="qz-card qz-q qz-after">
+          <article key={item.id} className={`qz-card qz-q qz-after${wrong ? " qz-after--bad" : ""}`}>
+            <div className="exam-review-qhead">
+              <span className={wrong ? "bad" : "ok"}>{wrong ? "Қате" : "Дұрыс"} · {i + 1}-сұрақ</span>
+              {video && (
+                <button
+                  type="button"
+                  className="exam-review-play"
+                  onClick={() => {
+                    videoTouched.current = true;
+                    setOpenVideo(videoOpen ? null : item.id);
+                  }}
+                >
+                  <Icon name="play_circle" size={18} />
+                  {videoOpen ? "Жасыру" : "Видео разбор"}
+                </button>
+              )}
+            </div>
             <div className={`qz-q__text${needsRich(item.prompt) ? " rich" : ""}`}>
               {needsRich(item.prompt) ? <span className="qz-q__n">{i + 1}.</span> : <>{i + 1}. </>}
               <QText text={item.prompt} />
@@ -221,6 +254,23 @@ export function ExamTestPage() {
                 );
               })}
             </div>
+            {video && videoOpen && (
+              <div className="exam-review-video exam-review-video--inline">
+                <header>
+                  <Icon name="play_circle" size={20} color="var(--navy)" />
+                  <div>
+                    <h3>Қателермен жұмыс · {i + 1}-сұрақ</h3>
+                    <p>Осы сұрақтың бейне-түсіндірмесі</p>
+                  </div>
+                </header>
+                <div className="exam-review-video__player">
+                  <VideoFrame url={video} title={`${i + 1}-сұрақ разборы`} />
+                </div>
+              </div>
+            )}
+            {!video && wrong && (
+              <p className="exam-review-missing">Бұл сұраққа видео әлі қосылмаған</p>
+            )}
           </article>
         );
       })}

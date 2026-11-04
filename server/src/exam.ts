@@ -26,6 +26,7 @@ function cleanQuestion(q: unknown, n: number): ExamQuestionDoc {
     choices,
     answer: num(o.answer, 0, 0, choices.length - 1),
     explanation: str(o.explanation, 20000),
+    reviewVideoUrl: str(o.reviewVideoUrl, 1000),
     level: levels.includes(o.level as QuestionLevel) ? (o.level as QuestionLevel) : "mid",
   };
 }
@@ -88,6 +89,19 @@ export function fullExam(doc: ExamDoc) {
     questions: doc.questions.map((q) => ({
       ...q,
       imageUrl: q.imageUrl ?? "",
+      reviewVideoUrl: q.reviewVideoUrl ?? "",
     })),
   };
+}
+
+/** Review payload after submit: per-question video, with exam-level fallback. */
+export function examReview(doc: ExamDoc, picks: number[]) {
+  const fallback = doc.reviewVideoUrl || "";
+  return doc.questions.map((q, i) => ({
+    id: q.id,
+    pick: picks[i] ?? -1,
+    answer: q.answer,
+    explanation: q.explanation,
+    reviewVideoUrl: (q.reviewVideoUrl || fallback || null) as string | null,
+  }));
 }
