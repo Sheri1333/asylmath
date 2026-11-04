@@ -1,6 +1,6 @@
 export type CourseLevel = "beginner" | "intermediate" | "advanced";
 export type QuestionLevel = "easy" | "mid" | "hard";
-export type EnrollmentStatus = "active" | "pending";
+export type EnrollmentStatus = "active" | "pending" | "rejected";
 
 export interface CourseSummary {
   id: string;

@@ -38,6 +38,11 @@
 .access__steps input { border: 1px solid var(--lav); border-radius: 12px; padding: 10px 12px; font: 400 15px/20px var(--text); color: var(--ink); outline: none; }
 .access__steps input:focus { border-color: var(--navy); box-shadow: 0 0 0 3px var(--lav3); }
 .access__kaspi { height: 48px; padding: 0 22px; font-size: 16px; }
+.access__steps ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.access__steps > .adm-alert { margin: 0; }
+.access__qr { margin-top: 14px; width: 180px; height: 180px; padding: 10px; background: #fff; border-radius: 14px; align-self: flex-start; }
+.access__qr-note { font-size: 12px !important; }
+.access__hint { font-weight: 600 !important; color: var(--ink) !important; }
 
 /* ── Program (expandable sections) ── */
 .prog-meter { min-width: 220px; display: flex; flex-direction: column; gap: 6px; text-align: right; }
@@ -409,6 +414,7 @@ a.prog__row:hover { background: var(--lav); }
 @media (max-width: 960px) {
   .access--pay { grid-template-columns: 1fr; }
   .access__steps { padding: 0 20px 20px; }
+  .access__qr, .access__qr-note { display: none; }
   .prog__body { padding: 0 16px 16px; }
   .prog-meter { min-width: 0; width: 100%; text-align: left; }
   .adm-grant { grid-template-columns: 1fr; }

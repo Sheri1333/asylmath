@@ -85,6 +85,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 const enc = encodeURIComponent;
 
+/** Kaspi "Оплата услуги": the same link the QR in /kaspi-qr.png opens; launches the Kaspi app on a phone. */
+export const KASPI_PAY_URL = "https://kaspi.kz/pay/CoursesUniversal?region_id=18&subservice_id=26536";
+export const KASPI_QR_SRC = "/kaspi-qr.png";
+
 export const api = {
   register(body: { email: string; password: string; name: string }) {
     return request<{ token: string; user: AuthUser }>("/auth/register", { method: "POST", body: JSON.stringify(body) });
@@ -157,10 +161,12 @@ export const api = {
     return request<{ enrollments: Array<EnrollmentInfo & { courseId: string; course: CourseSummary }> }>("/enrollments/me");
   },
 
-  enroll(courseId: string, note = "") {
+  /** Free course: opens it. Paid course: records a Kaspi payment for the admin to confirm. */
+  enroll(courseId: string, payerName = "", options: { keepalive?: boolean } = {}) {
     return request<{ ok: boolean; enrollment: EnrollmentInfo }>(`/enrollments/${enc(courseId)}`, {
       method: "POST",
-      body: JSON.stringify({ note }),
+      body: JSON.stringify({ payerName }),
+      keepalive: options.keepalive,
     });
   },
 

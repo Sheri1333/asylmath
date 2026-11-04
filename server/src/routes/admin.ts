@@ -7,6 +7,7 @@ import { courses, enrollments, examAttempts, exams, getDb, toObjectId, users, ty
 import { adminRequired, type AuthedRequest } from "../auth.js";
 import { cleanSections, courseSections, enrollmentView, publicCourse } from "../course.js";
 import { examInput, fullExam, publicExam } from "../exam.js";
+import { decidePayment } from "../payments.js";
 
 // ── Stored photos: ids referenced in course text, and cleanup of unused files ───────────────
 
@@ -93,7 +94,7 @@ adminRouter.get("/stats", async (_req, res) => {
     users().countDocuments(),
     courses().countDocuments(),
     courses().countDocuments({ published: true }),
-    enrollments().countDocuments({ status: { $ne: "pending" } }),
+    enrollments().countDocuments({ status: { $nin: ["pending", "rejected"] } }),
     enrollments().countDocuments({ status: "pending" }),
   ]);
   res.json({
@@ -182,7 +183,7 @@ adminRouter.delete("/courses/:id", async (req, res) => {
 
 adminRouter.get("/enrollments", async (req, res) => {
   const status = String(req.query.status ?? "");
-  const filter = status === "pending" ? { status: "pending" as const } : status === "active" ? { status: { $ne: "pending" as const } } : {};
+  const filter = status === "pending" ? { status: "pending" as const } : status === "active" ? { status: { $nin: ["pending" as const, "rejected" as const] } } : {};
   const rows = await enrollments().find(filter).sort({ enrolledAt: -1 }).limit(500).toArray();
   const [userRows, courseRows] = await Promise.all([
     users().find({ _id: { $in: rows.map((r) => r.userId) } }).toArray(),
@@ -199,7 +200,7 @@ adminRouter.get("/enrollments", async (req, res) => {
         id: r._id.toHexString(),
         user: { id: user._id.toHexString(), name: user.name, email: user.email },
         course: { id: course._id, title: course.title, priceTenge: course.priceTenge },
-        note: r.requestNote ?? "",
+        note: r.payerName ?? r.requestNote ?? "",
         ...enrollmentView(course, r)!,
       }];
     }),
@@ -238,6 +239,11 @@ adminRouter.patch("/enrollments/:id", async (req, res) => {
     res.status(400).json({ error: "Статус должен быть active или pending" });
     return;
   }
+  // A pending Kaspi attempt goes through the same path as the Telegram button, so the card closes too.
+  if (status === "active" && typeof (await decidePayment(id, "confirmed", "admin")) === "object") {
+    res.json({ ok: true });
+    return;
+  }
   const result = await enrollments().updateOne(
     { _id: id },
     { $set: { status, ...(status === "active" ? { activatedAt: new Date() } : {}) } },
@@ -255,6 +261,7 @@ adminRouter.delete("/enrollments/:id", async (req, res) => {
     res.status(400).json({ error: "Некорректный id" });
     return;
   }
+  await decidePayment(id, "rejected", "admin");
   await enrollments().deleteOne({ _id: id });
   res.json({ ok: true });
 });

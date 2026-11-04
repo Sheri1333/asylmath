@@ -116,7 +116,8 @@ export interface CourseDoc {
   updatedAt: Date;
 }
 
-export type EnrollmentStatus = "active" | "pending";
+/** pending: the student pressed pay in Kaspi; rejected: the admin did not find the transfer. */
+export type EnrollmentStatus = "active" | "pending" | "rejected";
 
 export interface QuizResultDoc {
   best: number;
@@ -138,6 +139,14 @@ export interface EnrollmentDoc {
   completedLessonIds: string[];
   quizResults?: Record<string, QuizResultDoc>;
   requestNote?: string;
+  /** Kaspi payment attempt: the name the student types in Kaspi and the price at that moment. */
+  payerName?: string;
+  amountTenge?: number;
+  paidAt?: Date;
+  /** Set while the Telegram card is being sent, so a double click does not send two. */
+  notifiedAt?: Date;
+  telegramMessages?: { chatId: number; messageId: number }[];
+  decidedVia?: "admin" | "telegram";
   enrolledAt: Date;
   activatedAt?: Date;
   lastAccessedAt: Date;
@@ -230,6 +239,11 @@ export async function connectDb(): Promise<Db> {
 
   console.log("MongoDB connected: db=aslmath");
   return database;
+}
+
+/** Small key/value documents (the Telegram admin chat lives here). */
+export function settings(): Collection<{ _id: string; [key: string]: unknown }> {
+  return requireDb().collection("settings");
 }
 
 export function isDbReady(): boolean {

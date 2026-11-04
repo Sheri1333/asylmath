@@ -8,6 +8,8 @@ import { coursesRouter } from "./routes/courses.js";
 import { enrollmentsRouter } from "./routes/enrollments.js";
 import { adminRouter, UPLOAD_DIR } from "./routes/admin.js";
 import { examsRouter } from "./routes/exams.js";
+import { handleTelegramUpdate } from "./payments.js";
+import { startTelegramPolling } from "./telegram.js";
 
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -137,6 +139,7 @@ async function connectLoop(): Promise<void> {
       await syncProgramTitles().catch((err) =>
         console.error("syncProgramTitles:", err instanceof Error ? err.message : err),
       );
+      startTelegramPolling(handleTelegramUpdate);
       return;
     } catch (err) {
       console.error(

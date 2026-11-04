@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { courses, enrollments, toObjectId, type EnrollmentDoc } from "../db.js";
 import { authRequired, type AuthedRequest } from "../auth.js";
 import { courseSections, enrollmentView, flatLessons, isActive, lessonAccessible, publicCourse } from "../course.js";
+import { notifyPayment, refreshPaymentCard } from "../payments.js";
 
 export const enrollmentsRouter = Router();
 
@@ -24,7 +25,26 @@ enrollmentsRouter.get("/me", authRequired, async (req: AuthedRequest, res) => {
   });
 });
 
-/** Free courses open at once; paid ones wait for an admin to confirm the Kaspi payment. */
+/** Pay presses per user per hour, so a loop of reject/retry cannot flood the admin chat. */
+const payPresses = new Map<string, number[]>();
+function tooManyPresses(userId: string): boolean {
+  const now = Date.now();
+  const recent = (payPresses.get(userId) ?? []).filter((t) => now - t < 60 * 60_000);
+  recent.push(now);
+  payPresses.set(userId, recent);
+  return recent.length > 20;
+}
+
+function payerNameOf(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const name = value.trim().replace(/\s+/g, " ");
+  return name.length >= 2 && name.length <= 80 ? name : null;
+}
+
+/**
+ * Free courses open at once. For a paid course the student pays in Kaspi and
+ * presses pay: the enrollment turns pending and the admin gets a Telegram card.
+ */
 enrollmentsRouter.post("/:courseId", authRequired, async (req: AuthedRequest, res) => {
   const courseId = String(req.params.courseId);
   const oid = toObjectId(req.user!.id);
@@ -37,29 +57,86 @@ enrollmentsRouter.post("/:courseId", authRequired, async (req: AuthedRequest, re
     res.status(404).json({ error: "Курс табылмады" });
     return;
   }
-  const note = String((req.body as { note?: unknown })?.note ?? "").trim().slice(0, 500);
+  const body = (req.body ?? {}) as { note?: unknown; payerName?: unknown };
+  const free = course.isFree || !course.priceTenge;
   const existing = await enrollments().findOne({ userId: oid, courseId });
-  if (existing) {
-    if (note && !isActive(existing)) await enrollments().updateOne({ _id: existing._id }, { $set: { requestNote: note } });
+  if (existing && (free || isActive(existing))) {
     res.json({ ok: true, enrollment: enrollmentView(course, existing) });
     return;
   }
+
   const now = new Date();
-  const free = course.isFree || !course.priceTenge;
-  const doc: EnrollmentDoc = {
-    _id: new ObjectId(),
-    userId: oid,
-    courseId,
-    status: free ? "active" : "pending",
-    completedLessonIds: [],
-    quizResults: {},
-    requestNote: note || undefined,
-    enrolledAt: now,
-    activatedAt: free ? now : undefined,
-    lastAccessedAt: now,
-  };
-  await enrollments().insertOne(doc);
-  res.status(201).json({ ok: true, enrollment: enrollmentView(course, doc) });
+  if (free) {
+    const doc: EnrollmentDoc = {
+      _id: new ObjectId(),
+      userId: oid,
+      courseId,
+      status: "active",
+      completedLessonIds: [],
+      quizResults: {},
+      enrolledAt: now,
+      activatedAt: now,
+      lastAccessedAt: now,
+    };
+    await enrollments().insertOne(doc);
+    res.status(201).json({ ok: true, enrollment: enrollmentView(course, doc) });
+    return;
+  }
+
+  const payerName = payerNameOf(body.payerName) ?? payerNameOf(body.note) ?? payerNameOf(req.user!.name);
+  if (!payerName) {
+    res.status(400).json({ error: "Kaspi-де жазатын аты-жөніңізді жазыңыз" });
+    return;
+  }
+  if (tooManyPresses(oid.toHexString())) {
+    res.status(429).json({ error: "Тым көп әрекет. Бір сағаттан кейін қайталаңыз." });
+    return;
+  }
+
+  let doc: EnrollmentDoc | null;
+  if (existing?.status === "pending") {
+    doc = existing;
+    if (existing.payerName !== payerName) {
+      doc = await enrollments().findOneAndUpdate(
+        { _id: existing._id, status: "pending" },
+        { $set: { payerName } },
+        { returnDocument: "after" },
+      );
+      if (doc) await refreshPaymentCard(doc);
+    }
+  } else if (existing) {
+    // A rejected attempt: start a new one with a fresh Telegram card.
+    doc = await enrollments().findOneAndUpdate(
+      { _id: existing._id, status: { $ne: "active" } },
+      {
+        $set: { status: "pending", payerName, amountTenge: course.priceTenge!, paidAt: now },
+        $unset: { notifiedAt: "", telegramMessages: "", decidedVia: "" },
+      },
+      { returnDocument: "after" },
+    );
+  } else {
+    doc = {
+      _id: new ObjectId(),
+      userId: oid,
+      courseId,
+      status: "pending",
+      completedLessonIds: [],
+      quizResults: {},
+      payerName,
+      amountTenge: course.priceTenge!,
+      paidAt: now,
+      enrolledAt: now,
+      lastAccessedAt: now,
+    };
+    await enrollments().insertOne(doc);
+  }
+  if (!doc) {
+    const fresh = await enrollments().findOne({ userId: oid, courseId });
+    res.json({ ok: true, enrollment: enrollmentView(course, fresh) });
+    return;
+  }
+  await notifyPayment(doc._id);
+  res.status(existing ? 200 : 201).json({ ok: true, enrollment: enrollmentView(course, doc) });
 });
 
 enrollmentsRouter.post("/:courseId/lessons/:lessonId/complete", authRequired, async (req: AuthedRequest, res) => {
