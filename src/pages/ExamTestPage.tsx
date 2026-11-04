@@ -27,7 +27,6 @@ function QText({ text }: { text: string }) {
   return <>{mathify(text)}</>;
 }
 
-const levelName = { easy: "Жеңіл", mid: "Орташа деңгей", hard: "Күрделі" } as const;
 const letters = "ABCDEFGH";
 
 type Outcome = {
@@ -341,7 +340,6 @@ export function ExamTestPage() {
                 <header>
                   <div>
                     <span className="chip">{index + 1}-сұрақ</span>
-                    <span className={`chip lvl ${q.level}`}>{levelName[q.level]}</span>
                     <span className="chip gray">1 балл</span>
                   </div>
                   <button type="button" className={flags.includes(index) ? "qz-flag on" : "qz-flag"} onClick={toggleFlag}>

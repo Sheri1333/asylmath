@@ -49,7 +49,7 @@ export function ExamListPage() {
             <h1>Сынақтар</h1>
             <p>
               <Icon name="event" size={20} color="var(--navy)" />
-              <span>Күн бойынша белгіленген толық тесттер</span>
+              <span>Пробный сынақтар · нәтижелер осында</span>
             </p>
           </div>
         </section>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { API_BASE } from "../api/client";
 import { Icon } from "../components/Icon";
-import { faqs, modules } from "../data/content";
+import { modules } from "../data/content";
 
 const WHATSAPP = "https://wa.me/77771234567";
 const PHONE = "+7 (777) 123-45-67";
@@ -48,12 +48,10 @@ const steps = [
 ];
 
 const perks = [
-  "Барлық бөлім бойынша видеосабақтар",
-  "Әр сабаққа конспект пен формулалар шпаргалкасы",
-  "Әр бөлімнен кейін ҰБТ форматындағы тест",
+  "13 бөлім бойынша барлық видеосабақтар",
+  "Әр видеосабақтан кейін ҰБТ форматындағы тест",
   "Жеке кабинет және әлсіз тақырыптар аналитикасы",
-  "Мұғаліммен және куратормен байланыс",
-  "2026 жылғы ҰБТ аяқталғанша қолжетімділік",
+  "Сынақ тесттері әр 10 күн сайын, видео шешімі бар",
 ];
 
 function Brand() {
@@ -176,12 +174,10 @@ function tenge(n: number) {
 
 export function LandingPage() {
   const { user } = useAuth();
-  const [open, setOpen] = useState(0);
   const [menu, setMenu] = useState(false);
-  const [price, setPrice] = useState<number | null | undefined>(undefined);
+  const [price, setPrice] = useState<number | null | undefined>(20000);
   const join = user ? "/course" : "/register";
   const root = useReveal();
-  const deal = price === 9990;
 
   useEffect(() => {
     document.title = "MATH ASYL — ҰБТ математикасына дайындық";
@@ -213,7 +209,6 @@ export function LandingPage() {
             <a href="#program">Бағдарлама</a>
             <a href="#teacher">Мұғалім</a>
             <a href="#price">Бағасы</a>
-            <a href="#faq">Сұрақтар</a>
           </nav>
           <div className="lp-top__acts">
             <Link to={user ? "/home" : "/login"} className="lp-btn lp-btn--ghost sm">{user ? "Кабинет" : "Кіру"}</Link>
@@ -344,7 +339,7 @@ export function LandingPage() {
 
         <section className="lp-sec" id="price">
           <div className="lp-wrap">
-            <Head pill="Бағасы" sub="Бір реттік төлем. Kaspi Red арқылы бөліп төлеуге болады.">
+            <Head pill="Бағасы" sub="Бір реттік төлем. Kaspi арқылы.">
               6 айлық <span className="lp-grad">толық курс</span>
             </Head>
             <div className="lp-price" data-reveal>
@@ -354,32 +349,11 @@ export function LandingPage() {
                 ))}
               </ul>
               <div className="lp-price__box">
-                {deal && <span className="lp-price__off">−50% жеңілдік</span>}
-                {deal && <p className="lp-price__old">19 900 ₸</p>}
                 <p className="lp-price__now">{price === undefined ? "…" : price ? tenge(price) : "Тегін"}</p>
-                <p className="lp-price__hint">{deal ? "немесе Kaspi Red арқылы 3 айға 3 330 ₸-ден" : "Бір реттік төлем. Kaspi арқылы"}</p>
+                <p className="lp-price__hint">Бір реттік төлем. Kaspi арқылы</p>
                 <Link to={join} className="lp-btn lp-btn--teal wide"><Icon name="qr_code_scanner" size={20} />Kaspi арқылы төлеу</Link>
                 <small><Icon name="lock" size={14} />Төлем расталғаннан кейін курс бірден ашылады</small>
               </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="lp-sec" id="faq">
-          <div className="lp-wrap lp-narrow">
-            <Head pill="Сұрақтар" sub="Оқушылар мен ата-аналар жиі сұрайтын сұрақтарға жауаптар.">
-              Жиі қойылатын <span className="lp-grad">сұрақтар</span>
-            </Head>
-            <div className="lp-faq">
-              {faqs.map((f, i) => (
-                <div key={f.q} className={open === i ? "lp-faq__item open" : "lp-faq__item"} data-reveal>
-                  <button type="button" aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
-                    <span>{f.q}</span>
-                    <span className="lp-faq__chev"><Icon name="expand_more" size={20} /></span>
-                  </button>
-                  {open === i && <p>{f.a}</p>}
-                </div>
-              ))}
             </div>
           </div>
         </section>

@@ -85,14 +85,13 @@ export function ProgramPage() {
                               <span className="prog__row">
                                 <Icon name="lock" size={18} />
                                 <span>{l.title}</span>
-                                <em>{l.durationMinutes} мин</em>
+                                <em>жабық</em>
                               </span>
                             ) : (
                               <Link className="prog__row" to={`/lesson/${l.id}`}>
                                 <Icon name={l.completed ? "check_circle" : "play_circle"} size={18} fill={l.completed} />
                                 <span>{l.title}</span>
                                 {l.isPreview && !access && <b className="prog__free">Тегін</b>}
-                                <em>{l.durationMinutes} мин</em>
                               </Link>
                             )}
                           </li>

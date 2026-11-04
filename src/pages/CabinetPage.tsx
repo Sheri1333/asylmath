@@ -5,14 +5,6 @@ import { PageState } from "../components/PageState";
 import { useAuth } from "../auth/AuthContext";
 import { MathText, nextLesson, quizStops, sectionDone, sectionEmpty, useMainCourse } from "../lib/course";
 
-/** Days until the main ҰБТ session (around 20 May). */
-function daysToUbt(): number {
-  const now = new Date();
-  let target = new Date(now.getFullYear(), 4, 20);
-  if (target.getTime() < now.getTime()) target = new Date(now.getFullYear() + 1, 4, 20);
-  return Math.ceil((target.getTime() - now.getTime()) / 86_400_000);
-}
-
 export function CabinetPage() {
   const { user } = useAuth();
   const { view, error, reload } = useMainCourse();
@@ -56,11 +48,9 @@ export function CabinetPage() {
       <div className="cab">
         <section className="cab-hello">
           <div>
-            <h1>Сәлем, {name}! <span>👋</span></h1>
+            <h1>Сәлем, {name}!</h1>
             <p>
-              <Icon name="hourglass_bottom" size={20} color="var(--navy)" />
-              <span>ҰБТ-ға <b>{daysToUbt()} күн</b> қалды</span>
-              <i />
+              <Icon name="menu_book" size={20} color="var(--navy)" />
               <span className="gray">{course.title}</span>
             </p>
           </div>
@@ -141,7 +131,7 @@ export function CabinetPage() {
               </header>
               {pts.length === 0 ? (
                 <div className="acc__empty">
-                  <p>Алғашқы тақырыптық тесттен кейін нәтиже графигі осында пайда болады.</p>
+                  <p>Сабақ тесттерін тапсырған сайын график осында толады.</p>
                 </div>
               ) : (
                 <div className="cab-chart">
@@ -268,10 +258,14 @@ export function CabinetPage() {
                 </div>
                 <small>{weak.length}{" "}<br />тақырып</small>
               </header>
-              <p>Тест нәтижесі өту шегінен төмен бөлімдер</p>
+              <p>Өту шегінен (&lt;70%) төмен тесттер — қайталаған жөн</p>
               {weak.length === 0 ? (
                 <div className="acc__empty">
-                  <p>{tested.length ? "Тапсырылған тесттердің бәрі шекке жетті." : "Тест тапсырғаннан кейін қайталау керек тақырыптар осында шығады."}</p>
+                  <p>
+                    {tested.length
+                      ? "Барлық тапсырылған тесттер шекке жетті."
+                      : "Сабақ тестін 70%-дан төмен тапсырсаңыз, тақырып осында шығады."}
+                  </p>
                 </div>
               ) : (
                 weak.map(({ q, pct }) => (

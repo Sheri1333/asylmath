@@ -2,7 +2,7 @@ import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { courses, enrollments, toObjectId, type EnrollmentDoc } from "../db.js";
 import { authRequired, type AuthedRequest } from "../auth.js";
-import { courseSections, enrollmentView, flatLessons, isActive, publicCourse, sectionOpen } from "../course.js";
+import { courseSections, enrollmentView, flatLessons, isActive, lessonAccessible, publicCourse } from "../course.js";
 
 export const enrollmentsRouter = Router();
 
@@ -81,7 +81,9 @@ enrollmentsRouter.post("/:courseId/lessons/:lessonId/complete", authRequired, as
     return;
   }
   const enr = await enrollments().findOne({ userId: oid, courseId });
-  if (!isActive(enr) || !sectionOpen(courseSections(course), lesson.sectionIndex, course, enr, false)) {
+  const sections = courseSections(course);
+  const lessonIndex = sections[lesson.sectionIndex]?.lessons.findIndex((l) => l.id === lesson.id) ?? -1;
+  if (!isActive(enr) || !lessonAccessible(sections, lesson.sectionIndex, lessonIndex, course, enr, false, Boolean(lesson.isPreview))) {
     res.status(403).json({ error: "Сабақ әлі ашылмаған" });
     return;
   }

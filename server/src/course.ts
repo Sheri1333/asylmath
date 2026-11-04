@@ -66,6 +66,31 @@ export function sectionOpen(
   return sections.slice(0, index).every((section) => sectionCleared(section, enr));
 }
 
+/** Lesson with a quiz is cleared only after a ≥ passPercent attempt; otherwise after mark-complete. */
+export function lessonCleared(lesson: LessonDoc, enr: EnrollmentDoc | null): boolean {
+  if ((lesson.quiz?.questions.length ?? 0) > 0) {
+    return Boolean(enr?.quizResults?.[lesson.id]?.passed);
+  }
+  return Boolean(enr?.completedLessonIds.includes(lesson.id));
+}
+
+/** Within an open section, later lessons stay locked until earlier ones are cleared (70% on their tests). */
+export function lessonAccessible(
+  sections: SectionDoc[],
+  sectionIndex: number,
+  lessonIndex: number,
+  doc: CourseDoc,
+  enr: EnrollmentDoc | null,
+  isAdmin: boolean,
+  isPreview = false,
+): boolean {
+  if (isAdmin || isPreview) return true;
+  if (!hasAccess(doc, enr, isAdmin)) return false;
+  if (!sectionOpen(sections, sectionIndex, doc, enr, isAdmin)) return false;
+  if (!doc.sequential || lessonIndex <= 0) return true;
+  return sections[sectionIndex].lessons.slice(0, lessonIndex).every((l) => lessonCleared(l, enr));
+}
+
 export function progressPercent(doc: CourseDoc, enr: EnrollmentDoc | null): number {
   const lessons = flatLessons(doc);
   if (!enr || lessons.length === 0) return 0;
@@ -138,19 +163,26 @@ export function courseOutline(doc: CourseDoc, enr: EnrollmentDoc | null, isAdmin
       description: s.description,
       order: i,
       open,
-      lessons: s.lessons.map((l) => ({
-        id: l.id,
-        title: l.title,
-        summary: l.summary,
-        durationMinutes: l.durationMinutes,
-        isPreview: Boolean(l.isPreview),
-        hasVideo: Boolean(l.videoUrl || l.practiceVideoUrl),
-        materialCount: l.materials?.length ?? 0,
-        completed: done.has(l.id),
-        locked: !(open || l.isPreview),
-        quiz: quizOutline(l.quiz ?? emptyQuiz(), !(open || l.isPreview), enr?.quizResults?.[l.id]),
-      })),
-      quiz: quizOutline(s.quiz, !open, result),
+      lessons: s.lessons.map((l, li) => {
+        const unlocked = lessonAccessible(sections, i, li, doc, enr, isAdmin, Boolean(l.isPreview));
+        return {
+          id: l.id,
+          title: l.title,
+          summary: l.summary,
+          durationMinutes: l.durationMinutes,
+          isPreview: Boolean(l.isPreview),
+          hasVideo: Boolean(l.videoUrl || l.practiceVideoUrl),
+          materialCount: l.materials?.length ?? 0,
+          completed: done.has(l.id),
+          locked: !unlocked,
+          quiz: quizOutline(l.quiz ?? emptyQuiz(), !unlocked, enr?.quizResults?.[l.id]),
+        };
+      }),
+      quiz: quizOutline(
+        s.quiz,
+        !open || !s.lessons.every((l) => lessonCleared(l, enr)),
+        result,
+      ),
     };
   });
 }

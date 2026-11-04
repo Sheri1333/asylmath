@@ -9,6 +9,7 @@ import {
   flatLessons,
   hasAccess,
   isActive,
+  lessonAccessible,
   publicCourse,
   publicQuiz,
   sectionOpen,
@@ -85,11 +86,12 @@ coursesRouter.get("/:key/lessons/:lessonId", authRequired, async (req: AuthedReq
   }
   const lesson = all[idx];
   const enr = await myEnrollment(req, row._id);
-  const open = hasAccess(row, enr, isAdmin) && sectionOpen(sections, lesson.sectionIndex, row, enr, isAdmin);
-  if (!open && !lesson.isPreview) {
+  const lessonIndex = sections[lesson.sectionIndex].lessons.findIndex((l) => l.id === lesson.id);
+  const open = lessonAccessible(sections, lesson.sectionIndex, lessonIndex, row, enr, isAdmin, Boolean(lesson.isPreview));
+  if (!open) {
     res.status(403).json({
       error: hasAccess(row, enr, isAdmin)
-        ? "Бұл бөлім алдыңғы бөлімнің тестінен кейін ашылады"
+        ? "Алдыңғы сабақтың тестін (≥70%) тапсырмай келесі сабақ ашылмайды"
         : "Сабақ курсқа қолжетімділік ашылғаннан кейін көрінеді",
     });
     return;
@@ -180,11 +182,12 @@ async function saveAttempt(enr: EnrollmentDoc | null, key: string, graded: Retur
 function lessonOpen(
   row: CourseDoc,
   sections: ReturnType<typeof courseSections>,
-  lesson: { sectionIndex: number; isPreview?: boolean },
+  lesson: { id: string; sectionIndex: number; isPreview?: boolean },
   enr: EnrollmentDoc | null,
   isAdmin: boolean,
 ) {
-  return (hasAccess(row, enr, isAdmin) && sectionOpen(sections, lesson.sectionIndex, row, enr, isAdmin)) || Boolean(lesson.isPreview);
+  const lessonIndex = sections[lesson.sectionIndex]?.lessons.findIndex((l) => l.id === lesson.id) ?? 0;
+  return lessonAccessible(sections, lesson.sectionIndex, lessonIndex, row, enr, isAdmin, Boolean(lesson.isPreview));
 }
 
 coursesRouter.get("/:key/sections/:sectionId/quiz", authRequired, async (req: AuthedRequest, res) => {

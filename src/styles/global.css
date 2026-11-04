@@ -783,9 +783,19 @@ img { max-width: 100%; display: block; }
 .cab-chart__x { display: grid; grid-template-columns: repeat(6, 1fr); padding: 4px 12px 0; text-align: center; font: 600 12px/16px var(--text); letter-spacing: 0.24px; color: var(--gray); }
 .cab-chart__x .now { font-weight: 700; color: var(--navy); }
 
-.cab-map { position: relative; padding: 12px 8px; display: flex; justify-content: space-between; gap: 12px; }
-.cab-map__line { position: absolute; left: 32px; right: 32px; top: 32px; height: 4px; background: var(--lav); }
-.cab-map__step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 40px; }
+.cab-map {
+  position: relative;
+  padding: 12px 4px 4px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.cab-map__line { position: absolute; left: 20px; right: 20px; top: 32px; height: 4px; background: var(--lav); pointer-events: none; }
+.cab-map__step { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 40px; flex: 0 0 40px; }
 .cab-map__step > span { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
 .cab-map__step b { font: 600 12px/16px var(--text); letter-spacing: 0.24px; color: var(--gray); }
 .cab-map__step.done > span { background: var(--teal); color: #fff; box-shadow: var(--sh-sm); }

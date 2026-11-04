@@ -4,8 +4,8 @@ import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
-import { fmtSize, mainSlug, Markdown, MathText, nextLesson, useMainCourse, VideoFrame } from "../lib/course";
-import type { LessonView, Material } from "../types/course";
+import { mainSlug, Markdown, MathText, nextLesson, useMainCourse, VideoFrame } from "../lib/course";
+import type { LessonView } from "../types/course";
 
 /** /lesson without an id: continue where the student stopped. */
 export function LessonRedirect() {
@@ -26,7 +26,7 @@ export function StudyLessonPage() {
   const navigate = useNavigate();
   const [data, setData] = useState<LessonView | null>(null);
   const [error, setError] = useState<{ message: string; status: number } | null>(null);
-  const [tab, setTab] = useState<"about" | "files" | "lessons">("about");
+  const [tab, setTab] = useState<"about" | "lessons">("about");
   const [saving, setSaving] = useState(false);
   /** Lesson explanation first; optional ҰБТ problems video swaps the player only. */
   const [clip, setClip] = useState<"lesson" | "practice">("lesson");
@@ -119,7 +119,7 @@ export function StudyLessonPage() {
 
   const list = (
     <article className="les-list">
-      <header><b>{sec.lessons.length} сабақ</b><span>Ұзақтығы: {sec.lessons.reduce((n, l) => n + l.durationMinutes, 0)} мин</span></header>
+      <header><b>{sec.lessons.length} сабақ</b></header>
       {sec.lessons.map((l, i) => {
         const on = l.id === lesson.id;
         const cls = `les-item${on ? " on" : ""}${l.locked ? " les-item--lock" : ""}${!l.completed && !on && !l.locked ? " todo" : ""}`;
@@ -129,10 +129,9 @@ export function StudyLessonPage() {
               {on ? <Icon name="play_arrow" size={18} fill /> : l.locked ? <Icon name="lock" size={16} /> : l.completed ? <Icon name="check" size={18} /> : <span className="les-item__num">{i + 1}</span>}
             </span>
             <span className="les-item__body">
-              <strong>{i + 1}. {l.title}</strong>
+              <strong>{l.title}</strong>
               <small>
-                {on ? <Icon name="graphic_eq" size={18} color="var(--brown)" /> : <Icon name="play_circle" size={18} />}
-                {l.durationMinutes} мин
+                {l.locked ? "Алдыңғы тестті өтіңіз" : on ? "Қазіргі сабақ" : l.completed ? "Өтілді" : "Ашық"}
               </small>
             </span>
           </>
@@ -178,7 +177,6 @@ export function StudyLessonPage() {
     </article>
   );
 
-  const files = <Files items={lesson.materials} />;
   const body = (
     <>
       {lesson.summary && !lesson.content && <p className="les-intro"><MathText text={lesson.summary} /></p>}
@@ -211,7 +209,6 @@ export function StudyLessonPage() {
       <div className="lm">
         <div className="lm-top">
           <Link to="/course" className="lm-back"><Icon name="arrow_back" size={16} />{section.order}. {section.title}</Link>
-          <span className="lm-streak">{pos} / {sec.lessons.length}</span>
         </div>
         <div className="lm-player lm-player--real">
           <VideoFrame key={`${clip}-${videoUrl ?? ""}`} url={videoUrl} title={videoTitle} caption={!onPractice} />
@@ -220,7 +217,6 @@ export function StudyLessonPage() {
           <div className="lm-chips">
             <span className="ubt">{section.order}-бөлім</span>
             {onPractice ? <span className="alg">ҰБТ есептері</span> : null}
-            <span><Icon name="schedule" size={14} />{lesson.durationMinutes} мин</span>
             {lesson.completed && <span className="alg"><Icon name="check_circle" size={14} fill />Өтілді</span>}
           </div>
           <h1>{heading}</h1>
@@ -242,12 +238,10 @@ export function StudyLessonPage() {
         </div>
         <div className="lm-seg">
           <button type="button" className={tab === "about" ? "on" : ""} onClick={() => setTab("about")}>Сипаттама</button>
-          <button type="button" className={tab === "files" ? "on" : ""} onClick={() => setTab("files")}>Материалдар<b className="brown">({lesson.materials.length})</b></button>
           <button type="button" className={tab === "lessons" ? "on" : ""} onClick={() => setTab("lessons")}>Сабақтар <b>({sec.lessons.length})</b></button>
         </div>
         <div className="lm-body">
           {tab === "about" && body}
-          {tab === "files" && files}
           {tab === "lessons" && list}
           {active && tab === "about" && (
             <button type="button" className={lesson.completed ? "les-done on" : "les-done"} disabled={lesson.completed || saving} onClick={markDone}>
@@ -285,22 +279,13 @@ export function StudyLessonPage() {
           </div>
           <div className="les-head">
             <div className="les-head__chips">
-              <span className="dark"><Icon name="schedule" size={18} />{lesson.durationMinutes} мин</span>
-              <span>{pos} / {sec.lessons.length} сабақ</span>
               {onPractice && <span className="free">ҰБТ есептері</span>}
               {lesson.isPreview && !active && <span className="free">Тегін сабақ</span>}
+              {lesson.completed && <span className="free">Өтілді</span>}
             </div>
             <h1>{heading}</h1>
           </div>
-          <div className="les-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected={tab !== "files"} className={tab !== "files" ? "on" : ""} onClick={() => setTab("about")}>
-              <Icon name="description" size={20} />Сипаттама
-            </button>
-            <button type="button" role="tab" aria-selected={tab === "files"} className={tab === "files" ? "on" : ""} onClick={() => setTab("files")}>
-              <Icon name="folder" size={22} />Материалдар мен файлдар ({lesson.materials.length})
-            </button>
-          </div>
-          <div className="les-body">{tab === "files" ? files : body}</div>
+          <div className="les-body">{body}</div>
         </div>
       </div>
 
@@ -329,32 +314,5 @@ export function StudyLessonPage() {
         </div>
       </div>
     </Shell>
-  );
-}
-
-function Files({ items }: { items: Material[] }) {
-  if (items.length === 0) return <p className="adm-muted">Бұл сабаққа файл қосылмаған.</p>;
-  return (
-    <section className="les-files">
-      <header>
-        <h3><Icon name="link" size={22} color="var(--navy)" />Сабақ материалдары</h3>
-        <small>Барлығы {items.length} файл</small>
-      </header>
-      {items.map((m) => {
-        const pdf = /\.pdf$/i.test(m.url);
-        return (
-          <article key={m.id}>
-            <div>
-              <span className="les-files__ico"><Icon name={pdf ? "picture_as_pdf" : "description"} size={24} /></span>
-              <div>
-                <strong>{m.name}</strong>
-                <small>{fmtSize(m.size) || "Файл"}</small>
-              </div>
-            </div>
-            <a href={m.url} target="_blank" rel="noreferrer" download><Icon name="download" size={18} />Жүктеу</a>
-          </article>
-        );
-      })}
-    </section>
   );
 }
