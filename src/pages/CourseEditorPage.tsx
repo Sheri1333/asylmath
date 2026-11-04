@@ -100,7 +100,7 @@ export function parseQuestions(text: string): { questions: EditQuestion[]; error
         if (opt[1] || opt[4]) answer = choices.length;
         choices.push(opt[3]);
       } else if (ans && !inExplanation) {
-        const map = "ABCDEFGH";
+        const map = "ABCDEFGHIJKL";
         const ru = "АБВГДЕ";
         const ch = ans[1].toUpperCase();
         answer = map.includes(ch) ? map.indexOf(ch) : ru.indexOf(ch);
