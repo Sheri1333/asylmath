@@ -8,7 +8,7 @@ import { parseExamText } from "../lib/parseExamText";
 import { uid } from "../lib/id";
 import type { EditExam, EditExamQuestion, QuestionLevel } from "../types/course";
 
-const letters = "ABCDEF";
+const letters = "ABCDEFGHIJKL";
 
 const blankQ = (): EditExamQuestion => ({
   id: uid(),
@@ -206,14 +206,16 @@ export function AdminExamEditorPage() {
             <label className="adm-check"><input type="checkbox" checked={form.published} onChange={(e) => set({ published: e.target.checked })} />Опубликован — виден ученикам</label>
             <label className="wide">Краткое описание<textarea rows={2} value={form.description} onChange={(e) => set({ description: e.target.value })} placeholder="Что это за тест" /></label>
             <label className="wide">
-              Работа над ошибками — только YouTube
+              Видео-решение (YouTube) — одно на весь тест
               <input
                 value={form.reviewVideoUrl}
                 onChange={(e) => set({ reviewVideoUrl: e.target.value })}
                 placeholder="https://youtu.be/… или https://www.youtube.com/watch?v=…"
               />
             </label>
-            <p className="adm-muted wide">После сдачи ученик увидит только это видео. Текстовых разборов по вопросам нет.</p>
+            <p className="adm-muted wide">
+              Ссылку ставьте сюда. После сдачи ученик увидит это видео в блоке «Қателермен жұмыс». Отдельного решения у каждого вопроса нет.
+            </p>
           </div>
         </article>
 
@@ -327,7 +329,7 @@ export function AdminExamEditorPage() {
                         {/[\\$^_]/.test(c) && <div className="ced-choice__math quiz-math"><ChoiceMath text={c} /></div>}
                       </div>
                     ))}
-                    {q.choices.length < 6 && (
+                    {q.choices.length < 12 && (
                       <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
                     )}
                   </fieldset>

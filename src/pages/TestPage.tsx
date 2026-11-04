@@ -28,7 +28,7 @@ function QText({ text }: { text: string }) {
   return <>{mathify(text)}</>;
 }
 
-const letters = "ABCDEFGH";
+const letters = "ABCDEFGHIJKL";
 
 /** /tests without an id: the next test the student has to pass. */
 export function TestRedirect() {

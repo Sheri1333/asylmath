@@ -54,7 +54,7 @@ function sectionCleared(section: SectionDoc, enr: EnrollmentDoc | null): boolean
   return gated.every((l) => Boolean(enr?.quizResults?.[l.id]?.passed));
 }
 
-/** A section is open when sequencing is off, it is the first one, or every section before it is passed. */
+/** A section is open for students only when every earlier section is cleared (admin bypasses). */
 export function sectionOpen(
   sections: SectionDoc[],
   index: number,
@@ -62,7 +62,8 @@ export function sectionOpen(
   enr: EnrollmentDoc | null,
   isAdmin: boolean,
 ): boolean {
-  if (isAdmin || !doc.sequential || index <= 0) return true;
+  void doc;
+  if (isAdmin || index <= 0) return true;
   return sections.slice(0, index).every((section) => sectionCleared(section, enr));
 }
 
@@ -74,7 +75,7 @@ export function lessonCleared(lesson: LessonDoc, enr: EnrollmentDoc | null): boo
   return Boolean(enr?.completedLessonIds.includes(lesson.id));
 }
 
-/** Within an open section, later lessons stay locked until earlier ones are cleared (70% on their tests). */
+/** Later lessons stay locked until earlier ones are cleared (≥70% on their tests). Always on for students. */
 export function lessonAccessible(
   sections: SectionDoc[],
   sectionIndex: number,
@@ -87,7 +88,7 @@ export function lessonAccessible(
   if (isAdmin || isPreview) return true;
   if (!hasAccess(doc, enr, isAdmin)) return false;
   if (!sectionOpen(sections, sectionIndex, doc, enr, isAdmin)) return false;
-  if (!doc.sequential || lessonIndex <= 0) return true;
+  if (lessonIndex <= 0) return true;
   return sections[sectionIndex].lessons.slice(0, lessonIndex).every((l) => lessonCleared(l, enr));
 }
 

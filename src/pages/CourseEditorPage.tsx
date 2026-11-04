@@ -10,7 +10,7 @@ import { uid } from "../lib/id";
 const CHART_TEMPLATE = "```график\ntitle: Парабола\nfn: x^2 - 4\nfrom: -4\nto: 4\nxlabel: x\nylabel: y\n```";
 import type { EditCourse, EditLesson, EditQuestion, EditQuiz, EditSection, QuestionLevel } from "../types/course";
 
-const letters = "ABCDEFGH";
+const letters = "ABCDEFGHIJKL";
 
 const blankCourse = (): EditCourse => ({
   title: "",
@@ -787,7 +787,7 @@ function QuizEditor({ quiz, onChange, emptyHint }: { quiz: EditQuiz; onChange: (
                       )}
                     </div>
                   ))}
-                  {q.choices.length < 6 && (
+                  {q.choices.length < 12 && (
                     <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
                   )}
                 </fieldset>

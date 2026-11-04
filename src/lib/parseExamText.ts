@@ -1,15 +1,15 @@
 import { uid } from "./id";
 import type { EditExamQuestion, QuestionLevel } from "../types/course";
 
-const choiceRe = /^\s*(?:([A-Fa-fА-Да-дӘә])[).:\]]|\(([A-Fa-fА-Да-дӘә])\)|([1-6])[).])\s*(.+?)\s*$/u;
+const choiceRe = /^\s*(?:([A-La-lА-Да-дӘә])[).:\]]|\(([A-La-lА-Да-дӘә])\)|([1-9]|1[0-2])[).])\s*(.+?)\s*$/u;
 const qStartRe = /^\s*(?:(?:Сұрақ|Вопрос)\s*)?(\d{1,3})[).:\-]?\s+(.+)$/u;
-const answerRe = /^\s*(?:Жауап|Дұрыс|Ответ|Answer)\s*[:：\-–]?\s*([A-Fa-fА-Да-дӘә1-6])\s*$/iu;
+const answerRe = /^\s*(?:Жауап|Дұрыс|Ответ|Answer)\s*[:：\-–]?\s*([A-La-lА-Да-дӘә]|1[0-2]|[1-9])\s*$/iu;
 const levelRe = /^\s*(?:Деңгей|Сложность|Level)\s*[:：\-–]?\s*(easy|mid|hard|жеңіл|лёгкий|легкий|орташа|средний|күрделі|сложный)\s*$/iu;
 
 const letterMap: Record<string, number> = {
-  a: 0, b: 1, c: 2, d: 3, e: 4, f: 5,
+  a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, h: 7, i: 8, j: 9, k: 10, l: 11,
   а: 0, ә: 0, б: 1, в: 2, г: 3, д: 4,
-  "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5,
+  "1": 0, "2": 1, "3": 2, "4": 3, "5": 4, "6": 5, "7": 6, "8": 7, "9": 8, "10": 9, "11": 10, "12": 11,
 };
 
 function letterIndex(raw: string): number {

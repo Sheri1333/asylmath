@@ -27,7 +27,7 @@ function QText({ text }: { text: string }) {
   return <>{mathify(text)}</>;
 }
 
-const letters = "ABCDEFGH";
+const letters = "ABCDEFGHIJKL";
 
 type Outcome = {
   score: number;
