@@ -13,7 +13,7 @@ export function Formula({ tex, display = false }: { tex: string; display?: boole
 }
 
 /** Text with `$inline$` and `$$block$$` formulas. Everything else stays as written. */
-export function MathText({ text }: { text: string }) {
+export function MathText({ text, preferInline = false }: { text: string; preferInline?: boolean }) {
   const nodes: ReactNode[] = [];
   const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
   let last = 0;
@@ -21,8 +21,11 @@ export function MathText({ text }: { text: string }) {
   let k = 0;
   while ((m = re.exec(text))) {
     if (m.index > last) nodes.push(<Fragment key={`t${k}`}>{text.slice(last, m.index)}</Fragment>);
-    const display = m[1] != null;
-    nodes.push(<Formula key={`m${k}`} tex={(display ? m[1] : m[2]).trim()} display={display} />);
+    const raw = (m[1] != null ? m[1] : m[2]).trim();
+    const forceDisplay =
+      m[1] != null && /\\begin\{(?:cases|gathered|aligned|align\*?|matrix|pmatrix|bmatrix|vmatrix)\}/.test(raw);
+    const display = preferInline ? forceDisplay : m[1] != null;
+    nodes.push(<Formula key={`m${k}`} tex={raw} display={display} />);
     k += 1;
     last = m.index + m[0].length;
   }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { api, ApiError } from "../api/client";
 import { parseLesson } from "./lessonText";
 import { Chart } from "./chart";
-import { Formula } from "./math";
+import { Formula, MathText } from "./math";
 import type { CourseView, OutlineLesson, OutlineSection, QuizResultSummary } from "../types/course";
 
 let featuredSlug: string | null = null;
@@ -198,54 +198,48 @@ function Board({ tex, caption, plain }: { tex: string; caption?: string; plain?:
   );
 }
 
-/** Quiz/exam prompts: keep $\\vec{AB}$ and words on one line instead of board stacks. */
-function coalesceQuizPrompt(text: string): string {
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
-  const out: string[] = [];
-  let run: string[] = [];
-  const flush = () => {
-    if (!run.length) return;
-    out.push(joinQuizRun(run));
-    run = [];
-  };
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) {
-      flush();
-      out.push("");
-      continue;
+/**
+ * Quiz/exam prompts often mix Kazakh with $$...$$ (and stray ".$$" from paste).
+ * Turn those into one flowing paragraph with inline math; keep cases/matrices as display.
+ */
+function normalizeQuizPrompt(text: string): string {
+  let t = text.replace(/\r\n/g, "\n").trim();
+  t = t.replace(/(^|\n)\s*\.(?=\$\$?)/g, "$1");
+  t = t.replace(/^\.(?=\$)/, "");
+  t = t.replace(/\$\$([\s\S]+?)\$\$/g, (_m, inner: string) => {
+    const body = String(inner).trim();
+    if (/\\begin\{(?:cases|gathered|aligned|align\*?|matrix|pmatrix|bmatrix|vmatrix)\}/.test(body)) {
+      return `\n\n$$${body}$$\n\n`;
     }
-    const onlyMath = /^\$\$?[^$\n]+\$\$?$/.test(line);
-    const short = line.length < 80 && !/^#{1,3}\s/.test(line) && !isQuizBreak(line);
-    if (onlyMath || (run.length && short)) {
-      run.push(line);
-      continue;
-    }
-    flush();
-    run.push(line);
-  }
-  flush();
-  return out.join("\n");
+    return `$${body}$`;
+  });
+  return t
+    .split(/\n{2,}/)
+    .map((para) => para.replace(/[ \t]*\n[ \t]*/g, " ").replace(/ {2,}/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
 }
 
-function isQuizBreak(line: string): boolean {
-  return /^(?:[-*]|•|·|\d+\.)\s+/.test(line) || /^```/.test(line) || /^!\[/.test(line);
-}
-
-function joinQuizRun(parts: string[]): string {
-  let out = "";
-  for (const part of parts) {
-    if (!out) {
-      out = part;
-      continue;
-    }
-    out += /^[,.;:!?…]/.test(part) || out.endsWith("-") ? part : ` ${part}`;
-  }
-  return out.replace(/ +/g, " ").trim();
+function quizPromptIsSimple(text: string): boolean {
+  return !/^(?:#{1,3}\s|\s*[-*•·]\s|```)/m.test(text) && !/!\[[^\]]*\]\(/.test(text) && !/ \| /.test(text);
 }
 
 export function Markdown({ text, plain = false }: { text: string; plain?: boolean }) {
-  const source = plain ? coalesceQuizPrompt(text) : text;
+  if (plain) {
+    const source = normalizeQuizPrompt(text);
+    if (quizPromptIsSimple(source)) {
+      return (
+        <div className="md md--quiz">
+          {source.split(/\n{2,}/).map((para, i) => (
+            <p key={i}>
+              <MathText text={para} preferInline />
+            </p>
+          ))}
+        </div>
+      );
+    }
+  }
+  const source = plain ? normalizeQuizPrompt(text) : text;
   const blocks = parseLesson(source).map((block, k) => {
     if (block.kind === "board") {
       if (plain) {

@@ -197,9 +197,28 @@ a.prog__row:hover { background: var(--lav); }
 .qz-q__text .qz-q__n, .qm-q__text .qm-q__n { display: inline; margin-right: 6px; font-weight: 700; }
 .qz-q__text .md, .qm-q__text .md { font: inherit; color: inherit; display: inline; gap: 0; }
 .qz-q__text .md p, .qm-q__text .md p { font: inherit; color: inherit; display: inline; margin: 0; }
-.md.md--quiz { display: block; gap: 0; }
-.md.md--quiz > p { display: inline; margin: 0; }
-.md.md--quiz > p + p::before { content: " "; }
+.md.md--quiz {
+  display: block;
+  gap: 0;
+  font: inherit;
+  color: inherit;
+  line-height: 1.55;
+}
+.md.md--quiz > p {
+  display: block;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+.md.md--quiz > p + p { margin-top: 10px; }
+.md.md--quiz .math { display: inline; vertical-align: middle; }
+.md.md--quiz .math--block {
+  display: block;
+  margin: 10px 0;
+  text-align: center;
+  overflow-x: auto;
+}
 .md.md--quiz > .math-frame { display: inline; margin: 0 2px; vertical-align: baseline; }
 .md.md--quiz > ul,
 .md.md--quiz > ol,
@@ -208,6 +227,15 @@ a.prog__row:hover { background: var(--lav); }
 .md.md--quiz > aside,
 .md.md--quiz > h3,
 .md.md--quiz > h4 { display: block; margin: 8px 0; }
+.qz-q__text.rich .md.md--quiz,
+.qm-q__text.rich .md.md--quiz { display: inline; }
+.qz-q__text.rich .md.md--quiz > p,
+.qm-q__text.rich .md.md--quiz > p { display: inline; }
+.qz-q__text.rich .md.md--quiz > p .math--block,
+.qm-q__text.rich .md.md--quiz > p .math--block {
+  display: block;
+  margin: 10px 0;
+}
 .qz-q__n { font: 700 16px/24px var(--head); color: var(--navy); }
 .qz-opts__t, .qm-opts .t { min-width: 0; overflow-x: auto; }
 .qm-banner .katex, .qm-banner .katex-display { color: #fff; }
