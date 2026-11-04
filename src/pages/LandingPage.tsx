@@ -324,16 +324,17 @@ export function LandingPage() {
           <div className="lp-wrap">
             <div className="lp-dark lp-teacher" data-reveal>
               <figure className="lp-teacher__photo">
-                <img src="/assets/teacher.png" alt="Асылбек Серікұлы" loading="lazy" />
+                <img src="/assets/teacher.png" alt="Асылай Арыстанбекова" loading="lazy" />
                 <span className="lp-float lp-float--b"><i />ҰБТ сарапшысы</span>
-                <span className="lp-float lp-float--c"><Icon name="verified" size={16} />8 жыл тәжірибе</span>
+                <span className="lp-float lp-float--c"><Icon name="verified" size={16} />ҰБТ 139 ұпай</span>
               </figure>
               <div className="lp-teacher__text">
                 <span className="lp-pill dark"><i />Тәлімгер</span>
-                <h2>Асылбек <span className="lp-grad lp-grad--light">Серікұлы</span></h2>
-                <p>Назарбаев Университетінің түлегі. Күрделі математикалық ұғымдарды визуалды әдіспен және өмірлік мысалдармен түсіндірудің авторлық жүйесін жасаған.</p>
+                <h2>Асылай <span className="lp-grad lp-grad--light">Арыстанбекова</span></h2>
+                <p>Ақпараттар технологиясының ғылым магистрі. Назарбаев Зияткерлік мектебінің және Astana IT University түлегі. Жеке ҰБТ нәтижесі 139 ұпай.</p>
                 <ul className="lp-teacher__stats">
-                  <li><b>1 500+</b><small>оқушы дайындады</small></li>
+                  <li><b>1 500+</b><small>оқушы</small></li>
+                  <li><b>40</b><small>орташа балл</small></li>
                 </ul>
                 <Link to={join} className="lp-btn lp-btn--coral">Сабақты бастау<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
               </div>
