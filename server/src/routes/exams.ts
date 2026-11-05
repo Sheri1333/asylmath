@@ -1,18 +1,43 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
-import { examAttempts, exams, toObjectId, type ExamAttemptDoc, type ExamDoc, type QuizDoc } from "../db.js";
+import { courses, enrollments, examAttempts, exams, toObjectId, type ExamAttemptDoc, type ExamDoc, type QuizDoc } from "../db.js";
 import { authRequired, type AuthedRequest } from "../auth.js";
-import { examReview, fullExam, publicExam, publicExamQuestions } from "../exam.js";
+import { examReview, fullExam, normalizePick, pickCorrect, publicExam, publicExamQuestions } from "../exam.js";
 
 export const examsRouter = Router();
 
-function grade(questions: ExamDoc["questions"], picksIn: unknown) {
-  const picks = questions.map((_, i) => {
-    const v = Array.isArray(picksIn) ? Number(picksIn[i]) : -1;
-    return Number.isInteger(v) ? v : -1;
+const LOCKED = "Сынақ тесттері тек курсты төлеген оқушыларға ашық";
+
+/** Mock tests are for paying students only: an active enrollment in a paid course (admins always pass). */
+async function paidStudent(req: AuthedRequest): Promise<boolean> {
+  if (req.user!.role === "admin") return true;
+  const oid = toObjectId(req.user!.id);
+  if (!oid) return false;
+  const mine = await enrollments()
+    .find({ userId: oid, $or: [{ status: "active" }, { status: { $exists: false } }] })
+    .toArray();
+  if (mine.length === 0) return false;
+  const paid = await courses().countDocuments({
+    _id: { $in: mine.map((e) => e.courseId) },
+    isFree: { $ne: true },
+    priceTenge: { $gt: 0 },
   });
+  return paid > 0;
+}
+
+examsRouter.use(authRequired, async (req: AuthedRequest, res, next) => {
+  try {
+    if (await paidStudent(req)) return next();
+    res.status(403).json({ error: LOCKED, code: "payment_required" });
+  } catch (e) {
+    next(e);
+  }
+});
+
+function grade(questions: ExamDoc["questions"], picksIn: unknown) {
+  const picks = questions.map((q, i) => normalizePick(Array.isArray(picksIn) ? picksIn[i] : -1, q.choices.length));
   const total = questions.length;
-  const score = questions.filter((q, i) => picks[i] === q.answer).length;
+  const score = questions.filter((q, i) => pickCorrect(q, picks[i])).length;
   return { picks, total, score };
 }
 

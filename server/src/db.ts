@@ -161,7 +161,10 @@ export interface ExamQuestionDoc {
   /** Optional photo shown with the question. */
   imageUrl?: string;
   choices: string[];
+  /** First correct choice (kept for older readers). */
   answer: number;
+  /** Every correct choice; more than one means the student must pick all of them. Missing on old docs: [answer]. */
+  answers?: number[];
   explanation: string;
   /** YouTube разбор этого вопроса (работа над ошибками). */
   reviewVideoUrl?: string;
@@ -193,7 +196,8 @@ export interface ExamAttemptDoc {
   total: number;
   passed: boolean;
   attempts: number;
-  lastPicks: number[];
+  /** One entry per question: the chosen indexes (old docs hold a single number). */
+  lastPicks: Array<number | number[]>;
   updatedAt: Date;
 }
 

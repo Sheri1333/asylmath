@@ -112,6 +112,10 @@ export interface ReviewItem {
   id: string;
   pick: number;
   answer: number;
+  /** Exams: every chosen and every correct index (several when a question has more than one right answer). */
+  picks?: number[];
+  answers?: number[];
+  correct?: boolean;
   explanation: string;
   /** Per-question YouTube for error review (exams). */
   reviewVideoUrl?: string | null;
@@ -139,6 +143,7 @@ export interface QuizSubmitResult {
   passPercent: number;
   review: ReviewItem[];
   reviewVideoUrl?: string | null;
+  nextLessonId?: string | null;
 }
 
 /** Dated mock test shown under Сынақтар. */
@@ -164,6 +169,8 @@ export interface EditExamQuestion {
   imageUrl: string;
   choices: string[];
   answer: number;
+  /** Every correct choice; two or more make it a multi-answer question. */
+  answers?: number[];
   explanation: string;
   /** YouTube разбор этого вопроса. */
   reviewVideoUrl: string;
@@ -193,6 +200,8 @@ export interface ExamView {
       imageUrl: string;
       choices: string[];
       level: QuestionLevel;
+      /** More than one correct choice: the student ticks all of them. */
+      multi?: boolean;
     }>;
   };
   result: (QuizResultSummary & { review: ReviewItem[]; reviewVideoUrl?: string | null }) | null;

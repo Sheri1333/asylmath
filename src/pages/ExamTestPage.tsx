@@ -37,13 +37,27 @@ type Outcome = {
   reviewVideoUrl: string | null;
 };
 
+/** Correct choices of a reviewed question (old servers send only `answer`). */
+function answersOf(r: ReviewItem): number[] {
+  return r.answers?.length ? r.answers : [r.answer];
+}
+function picksOf(r: ReviewItem): number[] {
+  return r.picks ?? (r.pick >= 0 ? [r.pick] : []);
+}
+function isWrong(r: ReviewItem): boolean {
+  if (typeof r.correct === "boolean") return !r.correct;
+  const want = answersOf(r);
+  const got = picksOf(r);
+  return want.length !== got.length || want.some((v) => !got.includes(v));
+}
+
 export function ExamTestPage() {
   const { examId = "" } = useParams();
   const [data, setData] = useState<ExamView | null>(null);
   const [error, setError] = useState<{ message: string; status: number } | null>(null);
   const [mode, setMode] = useState<"quiz" | "result">("quiz");
   const [index, setIndex] = useState(0);
-  const [picks, setPicks] = useState<number[]>([]);
+  const [picks, setPicks] = useState<number[][]>([]);
   const [flags, setFlags] = useState<number[]>([]);
   const [left, setLeft] = useState(0);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
@@ -58,7 +72,7 @@ export function ExamTestPage() {
       setError(null);
       const d = await api.exam(examId);
       setData(d);
-      setPicks(d.quiz.questions.map(() => -1));
+      setPicks(d.quiz.questions.map(() => []));
       setFlags([]);
       setIndex(0);
       setLeft(d.quiz.timeLimitMinutes * 60);
@@ -73,7 +87,7 @@ export function ExamTestPage() {
           reviewVideoUrl: d.result.reviewVideoUrl ?? (d.exam.reviewVideoUrl || null),
         });
         videoTouched.current = false;
-        setOpenVideo(rev.find((r) => r.pick !== r.answer && r.reviewVideoUrl)?.id ?? rev.find((r) => r.reviewVideoUrl)?.id ?? null);
+        setOpenVideo(rev.find((r) => isWrong(r) && r.reviewVideoUrl)?.id ?? rev.find((r) => r.reviewVideoUrl)?.id ?? null);
         setMistakesOnly(true);
         setMode("result");
       } else {
@@ -104,7 +118,7 @@ export function ExamTestPage() {
         reviewVideoUrl: r.reviewVideoUrl ?? (data.exam.reviewVideoUrl || null),
       });
       videoTouched.current = false;
-      setOpenVideo(r.review.find((x) => x.pick !== x.answer && x.reviewVideoUrl)?.id ?? r.review.find((x) => x.reviewVideoUrl)?.id ?? null);
+      setOpenVideo(r.review.find((x) => isWrong(x) && x.reviewVideoUrl)?.id ?? r.review.find((x) => x.reviewVideoUrl)?.id ?? null);
       setMistakesOnly(true);
       setMode("result");
       window.scrollTo(0, 0);
@@ -128,7 +142,7 @@ export function ExamTestPage() {
 
   function restart() {
     if (!data) return;
-    setPicks(data.quiz.questions.map(() => -1));
+    setPicks(data.quiz.questions.map(() => []));
     setFlags([]);
     setIndex(0);
     setLeft(data.quiz.timeLimitMinutes * 60);
@@ -139,7 +153,7 @@ export function ExamTestPage() {
   if (!data) {
     return (
       <Shell variant="study" flush streak={false} crumbs={[{ label: "Сынақтар", to: "/tests" }, { label: "Тест" }]}>
-        <PageState error={error} onRetry={load} />
+        <PageState error={error} onRetry={load} paywall />
       </Shell>
     );
   }
@@ -147,16 +161,25 @@ export function ExamTestPage() {
   const { exam, quiz } = data;
   const qs = quiz.questions;
   const q = qs[index];
-  const answered = picks.filter((p) => p >= 0).length;
+  const answered = picks.filter((p) => p.length > 0).length;
   const pct = Math.round(((index + 1) / qs.length) * 100);
   const need = Math.ceil((quiz.passPercent / 100) * qs.length);
   const toggleFlag = () => setFlags((f) => (f.includes(index) ? f.filter((n) => n !== index) : [...f, index]));
-  const pick = (i: number) => setPicks((p) => p.map((v, j) => (j === index ? i : v)));
+  const multi = Boolean(q.multi);
+  // Single-answer questions swap the pick; multi-answer ones toggle each choice.
+  const pick = (i: number) =>
+    setPicks((p) =>
+      p.map((v, j) => {
+        if (j !== index) return v;
+        if (!multi) return [i];
+        return v.includes(i) ? v.filter((x) => x !== i) : [...v, i].sort((a, b) => a - b);
+      }),
+    );
   const last = index === qs.length - 1;
   const counts = qs.reduce(
     (acc, _, i) => {
       if (flags.includes(i)) acc.flag += 1;
-      else if (picks[i] >= 0) acc.ans += 1;
+      else if (picks[i]?.length) acc.ans += 1;
       else if (i !== index) acc.open += 1;
       return acc;
     },
@@ -168,7 +191,7 @@ export function ExamTestPage() {
     void submit();
   };
 
-  const wrongCount = outcome ? outcome.review.filter((r) => r.pick !== r.answer).length : 0;
+  const wrongCount = outcome ? outcome.review.filter(isWrong).length : 0;
   const withVideo = outcome ? outcome.review.filter((r) => Boolean(r.reviewVideoUrl)).length : 0;
 
   const results = outcome && (
@@ -209,7 +232,7 @@ export function ExamTestPage() {
 
       {qs.map((item, i) => {
         const r = outcome.review[i];
-        const wrong = Boolean(r && r.pick !== r.answer);
+        const wrong = Boolean(r && isWrong(r));
         if (mistakesOnly && !wrong) return null;
         const video = r?.reviewVideoUrl || null;
         const videoOpen = openVideo === item.id;
@@ -247,8 +270,8 @@ export function ExamTestPage() {
             )}
             <div className="qz-opts">
               {item.choices.map((c, ci) => {
-                const good = Boolean(r && ci === r.answer);
-                const bad = Boolean(r && r.pick === ci && ci !== r.answer);
+                const good = Boolean(r && answersOf(r).includes(ci));
+                const bad = Boolean(r && picksOf(r).includes(ci) && !good);
                 return (
                   <button key={ci} type="button" disabled className={good ? "good" : bad ? "bad" : ""}>
                     <span className="qz-opts__l">{letters[ci]}</span>
@@ -328,15 +351,15 @@ export function ExamTestPage() {
                   <img src={q.imageUrl} alt="" />
                 </figure>
               )}
-              <p className="qm-q__hint">Бір дұрыс жауапты таңдаңыз</p>
+              <p className="qm-q__hint">{multi ? "Бірнеше дұрыс жауап бар: барлығын белгілеңіз" : "Бір дұрыс жауапты таңдаңыз"}</p>
               <div className="qm-opts">
                 {q.choices.map((c, i) => {
-                  const on = picks[index] === i;
+                  const on = Boolean(picks[index]?.includes(i));
                   return (
                     <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} aria-label={`${letters[i]}) ${c}`} onClick={() => pick(i)}>
                       <span className="l">{letters[i]}</span>
                       <span className="t"><ChoiceMath text={c} /></span>
-                      <Icon name={on ? "check_circle" : "radio_button_unchecked"} size={on ? 22 : 20} />
+                      <Icon name={multi ? (on ? "check_box" : "check_box_outline_blank") : on ? "check_circle" : "radio_button_unchecked"} size={on ? 22 : 20} />
                     </button>
                   );
                 })}
@@ -417,7 +440,7 @@ export function ExamTestPage() {
                 )}
                 <div className="qz-opts">
                   {q.choices.map((c, i) => {
-                    const on = picks[index] === i;
+                    const on = Boolean(picks[index]?.includes(i));
                     return (
                       <button key={i} type="button" className={on ? "on" : ""} aria-pressed={on} aria-label={`${letters[i]}) ${c}`} onClick={() => pick(i)}>
                         <span className="qz-opts__l">{letters[i]}</span>
@@ -449,7 +472,7 @@ export function ExamTestPage() {
                 </header>
                 <div className="qz-matrix__grid">
                   {qs.map((_, i) => {
-                    const cls = i === index ? "cur" : flags.includes(i) ? "flag" : picks[i] >= 0 ? "ans" : "";
+                    const cls = i === index ? "cur" : flags.includes(i) ? "flag" : picks[i]?.length ? "ans" : "";
                     return (
                       <button key={i} type="button" className={cls} aria-label={`${i + 1}-сұрақ`} onClick={() => setIndex(i)}>
                         {i + 1}

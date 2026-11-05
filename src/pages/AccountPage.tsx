@@ -86,35 +86,6 @@ export function AccountPage() {
             )}
           </article>
 
-          <article className="cab-card">
-            <header className="cab-card__head cab-card__head--flat">
-              <div>
-                <span className="cab-card__ico"><Icon name="quiz" size={22} /></span>
-                <div>
-                  <h3>Тақырыптық тесттер</h3>
-                  <p>Барлық курстар бойынша</p>
-                </div>
-              </div>
-            </header>
-            {(() => {
-              const results = (items ?? []).flatMap((e) => Object.values(e.quizResults));
-              if (results.length === 0)
-                return (
-                  <div className="acc__empty">
-                    <p>Әзірге тест тапсырылмаған. Бөлімнің сабақтарын өткен соң тест ашылады.</p>
-                    <Link to="/tests" className="prog__btn">Келесі тест<Icon name="arrow_forward" size={16} /></Link>
-                  </div>
-                );
-              const passedN = results.filter((r) => r.passed).length;
-              return (
-                <div className="acc__score">
-                  <b className={passedN === results.length ? "ok" : ""}>{passedN}<em>/{results.length}</em></b>
-                  <p>{passedN === results.length ? "Тапсырылған тесттердің бәрі өтті." : "Кейбір тесттер шекке жетпеді: оларды кабинеттегі «Әлсіз тақырыптар» блогынан қайталаңыз."}</p>
-                  <Link to="/home">Кабинетке өту<Icon name="arrow_forward" size={16} /></Link>
-                </div>
-              );
-            })()}
-          </article>
         </div>
         <PasswordCard />
       </div>

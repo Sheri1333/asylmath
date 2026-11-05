@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
+import { api, ApiError } from "../api/client";
 import { Shell } from "../components/Shell";
 import { Icon } from "../components/Icon";
 import { PageState } from "../components/PageState";
@@ -26,7 +26,7 @@ export function ExamListPage() {
     api
       .exams()
       .then((r) => setItems(r.exams))
-      .catch((e) => setError({ message: e instanceof Error ? e.message : "Қате", status: 0 }));
+      .catch((e) => setError({ message: e instanceof Error ? e.message : "Қате", status: e instanceof ApiError ? e.status : 0 }));
   }
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function ExamListPage() {
   if (!items) {
     return (
       <Shell crumbs={[{ label: "Оқу кеңістігі", to: "/home" }, { label: "Сынақтар" }]} subtitle="Сынақтар">
-        <PageState error={error} onRetry={load} />
+        <PageState error={error} onRetry={load} paywall />
       </Shell>
     );
   }

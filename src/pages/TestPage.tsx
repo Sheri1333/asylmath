@@ -44,7 +44,7 @@ export function TestRedirect() {
   );
 }
 
-type Outcome = { score: number; total: number; passed: boolean; review: ReviewItem[] };
+type Outcome = { score: number; total: number; passed: boolean; review: ReviewItem[]; nextLessonId?: string | null };
 
 export function TestPage() {
   const { sectionId = "", lessonId = "" } = useParams();
@@ -168,6 +168,7 @@ export function TestPage() {
     void submit();
   };
 
+  const nextLessonId = outcome?.nextLessonId ?? data.nextLessonId;
   const results = outcome && (
     <div className="qz-res">
       <article className="qz-card qz-res__score">
@@ -187,8 +188,8 @@ export function TestPage() {
               : `Өту үшін кемінде ${need} дұрыс жауап керек. Төмендегі қателерді қарап, қайта тапсырыңыз.`}
           </p>
           <div className="qz-res__acts">
-            {outcome.passed && lessonMode && data.nextLessonId ? (
-              <Link to={`/lesson/${data.nextLessonId}`} className="qz-next">Келесі сабаққа өту<Icon name="arrow_forward" size={16} /></Link>
+            {outcome.passed && lessonMode ? (
+              <Link to={nextLessonId ? `/lesson/${nextLessonId}` : `/lesson/${lesson?.id ?? ""}`} className="qz-next">Келесі сабаққа өту<Icon name="arrow_forward" size={16} /></Link>
             ) : outcome.passed && nextSection ? (
               <Link to="/lesson" className="qz-next">Келесі бөлімге өту<Icon name="arrow_forward" size={16} /></Link>
             ) : (

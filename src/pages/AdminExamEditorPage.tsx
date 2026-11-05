@@ -10,6 +10,11 @@ import type { EditExam, EditExamQuestion, QuestionLevel } from "../types/course"
 
 const letters = "ABCDEFGHIJKL";
 
+/** Correct choices of a question; old exams only stored `answer`. */
+function rightOf(q: EditExamQuestion): number[] {
+  return q.answers?.length ? q.answers : [q.answer];
+}
+
 const blankQ = (): EditExamQuestion => ({
   id: uid(),
   prompt: "",
@@ -17,6 +22,7 @@ const blankQ = (): EditExamQuestion => ({
   imageUrl: "",
   choices: ["", "", "", ""],
   answer: 0,
+  answers: [0],
   explanation: "",
   reviewVideoUrl: "",
   level: "mid",
@@ -318,11 +324,22 @@ export function AdminExamEditorPage() {
                     )}
                   </div>
                   <fieldset className="ced-choices">
-                    <legend>Ответы — отметьте правильный</legend>
-                    {q.choices.map((c, ci) => (
+                    <legend>Ответы — отметьте правильные (можно несколько)</legend>
+                    {q.choices.map((c, ci) => {
+                      const right = rightOf(q);
+                      return (
                       <div key={ci} className="ced-choice-col">
-                        <div className={q.answer === ci ? "ced-choice ok" : "ced-choice"}>
-                          <input type="radio" name={`ans-${q.id}`} checked={q.answer === ci} onChange={() => setQ(qi, { answer: ci })} aria-label={`Правильный ${letters[ci]}`} />
+                        <div className={right.includes(ci) ? "ced-choice ok" : "ced-choice"}>
+                          <input
+                            type="checkbox"
+                            checked={right.includes(ci)}
+                            onChange={() => {
+                              const next = right.includes(ci) ? right.filter((x) => x !== ci) : [...right, ci].sort((a, b) => a - b);
+                              if (next.length === 0) return; // at least one right answer
+                              setQ(qi, { answers: next, answer: next[0] });
+                            }}
+                            aria-label={`Правильный ${letters[ci]}`}
+                          />
                           <b>{letters[ci]}</b>
                           <input value={c} onChange={(e) => setQ(qi, { choices: q.choices.map((x, j) => (j === ci ? e.target.value : x)) })} placeholder={`Вариант ${letters[ci]}`} />
                           {q.choices.length > 2 && (
@@ -330,7 +347,11 @@ export function AdminExamEditorPage() {
                               type="button"
                               className="adm-del"
                               aria-label="Убрать вариант"
-                              onClick={() => setQ(qi, { choices: q.choices.filter((_, j) => j !== ci), answer: q.answer === ci ? 0 : q.answer > ci ? q.answer - 1 : q.answer })}
+                              onClick={() => {
+                                const kept = right.filter((x) => x !== ci).map((x) => (x > ci ? x - 1 : x));
+                                const next = kept.length ? kept : [0];
+                                setQ(qi, { choices: q.choices.filter((_, j) => j !== ci), answers: next, answer: next[0] });
+                              }}
                             >
                               <Icon name="close" size={16} />
                             </button>
@@ -338,7 +359,8 @@ export function AdminExamEditorPage() {
                         </div>
                         {/[\\$^_]/.test(c) && <div className="ced-choice__math quiz-math"><ChoiceMath text={c} /></div>}
                       </div>
-                    ))}
+                      );
+                    })}
                     {q.choices.length < 12 && (
                       <button type="button" className="adm-link" onClick={() => setQ(qi, { choices: [...q.choices, ""] })}><Icon name="add" size={16} />Вариант</button>
                     )}

@@ -5,15 +5,29 @@ import { Icon } from "./Icon";
 export function PageState({
   error,
   onRetry,
+  paywall,
 }: {
   error: { message: string; status: number } | null;
   onRetry?: () => void;
+  /** A 403 here means the student has not paid: show the buy-course lock. */
+  paywall?: boolean;
 }) {
   if (!error)
     return (
       <div className="pstate" role="status">
         <span className="pstate__spin" aria-hidden />
         <p>Жүктелуде…</p>
+      </div>
+    );
+  if (paywall && error?.status === 403)
+    return (
+      <div className="pstate pstate--err">
+        <Icon name="lock" size={28} />
+        <h2>Сынақ тесттері жабық</h2>
+        <p>{error.message || "Сынақ тесттері тек курсты төлеген оқушыларға ашық."}</p>
+        <div className="pstate__acts">
+          <Link to="/course" className="qz-next">Курсты сатып алу<Icon name="arrow_forward" size={16} /></Link>
+        </div>
       </div>
     );
   const noCourse = error.status === 404;

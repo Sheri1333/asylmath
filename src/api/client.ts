@@ -143,7 +143,7 @@ export const api = {
     return request<ExamView>(`/exams/${enc(id)}`);
   },
 
-  submitExam(id: string, picks: number[]) {
+  submitExam(id: string, picks: number[][]) {
     return request<QuizSubmitResult>(`/exams/${enc(id)}`, {
       method: "POST",
       body: JSON.stringify({ picks }),

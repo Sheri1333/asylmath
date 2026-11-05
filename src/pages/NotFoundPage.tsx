@@ -5,11 +5,11 @@ import { useAuth } from "../auth/AuthContext";
 export function NotFoundPage() {
   const { user } = useAuth();
   useEffect(() => {
-    document.title = "Бет табылмады — MATH ASYL";
+    document.title = "Бет табылмады — ASYL MATH";
   }, []);
   return (
     <div className="nf">
-      <img src="/assets/logo.png" alt="MATH ASYL" />
+      <img src="/assets/logo.png" alt="ASYL MATH" />
       <p className="nf__code">404</p>
       <h1>Мұндай бет жоқ</h1>
       <p>Сілтеме ескірген немесе қате терілген болуы мүмкін.</p>

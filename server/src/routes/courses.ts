@@ -318,11 +318,17 @@ coursesRouter.post("/:key/lessons/:lessonId/quiz", authRequired, async (req: Aut
       { $addToSet: { completedLessonIds: lesson.id }, $set: { lastAccessedAt: new Date() } },
     );
   }
+  // The next lesson may have opened just now, so look it up after saving.
+  const all = flatLessons(row);
+  const next = all[all.findIndex((l) => l.id === lesson.id) + 1];
+  const fresh = enr ? await enrollments().findOne({ _id: enr._id }) : null;
+  const nextLessonId = next && lessonOpen(row, sections, next, fresh, isAdmin) ? next.id : null;
   res.json({
     score: graded.score,
     total: graded.total,
     passed: graded.passed,
     passPercent: quiz.passPercent,
+    nextLessonId,
     review: quiz.questions.map((q, i) => ({ id: q.id, pick: graded.picks[i], answer: q.answer, explanation: q.explanation })),
   });
 });

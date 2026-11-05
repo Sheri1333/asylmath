@@ -3,7 +3,7 @@ import type { EditExamQuestion, QuestionLevel } from "../types/course";
 
 const choiceRe = /^\s*(?:([A-La-lА-Да-дӘә])[).:\]]|\(([A-La-lА-Да-дӘә])\)|([1-9]|1[0-2])[).])\s*(.+?)\s*$/u;
 const qStartRe = /^\s*(?:(?:Сұрақ|Вопрос)\s*)?(\d{1,3})[).:\-]?\s+(.+)$/u;
-const answerRe = /^\s*(?:Жауап|Дұрыс|Ответ|Answer)\s*[:：\-–]?\s*([A-La-lА-Да-дӘә]|1[0-2]|[1-9])\s*$/iu;
+const answerRe = /^\s*(?:Жауап|Дұрыс|Ответ|Answer)\s*[:：\-–]?\s*((?:[A-La-lА-Да-дӘә]|1[0-2]|[1-9])(?:\s*[,;/ ]\s*(?:[A-La-lА-Да-дӘә]|1[0-2]|[1-9]))*)\s*$/iu;
 const levelRe = /^\s*(?:Деңгей|Сложность|Level)\s*[:：\-–]?\s*(easy|mid|hard|жеңіл|лёгкий|легкий|орташа|средний|күрделі|сложный)\s*$/iu;
 
 const letterMap: Record<string, number> = {
@@ -27,7 +27,8 @@ type Draft = {
   prompt: string;
   descriptionLines: string[];
   choices: string[];
-  answer: number;
+  /** Every choice marked correct (a star, «(дұрыс)», or the «Жауап:» line). */
+  answers: number[];
   level: QuestionLevel;
 };
 
@@ -35,13 +36,17 @@ function flush(d: Draft | null, out: EditExamQuestion[]) {
   if (!d || !d.prompt.trim()) return;
   const choices = d.choices.map((c) => c.trim()).filter(Boolean);
   const padded = choices.length >= 2 ? choices : ["", "", "", ""].map((c, i) => choices[i] ?? c);
+  const kept = padded.slice(0, 12);
+  const answers = [...new Set(d.answers)].filter((i) => i >= 0 && i < kept.length).sort((a, b) => a - b);
+  if (answers.length === 0) answers.push(0);
   out.push({
     id: uid(),
     prompt: d.prompt.trim(),
     description: d.descriptionLines.join("\n").trim(),
     imageUrl: "",
-    choices: padded.slice(0, 6),
-    answer: Math.max(0, Math.min(d.answer, padded.length - 1)),
+    choices: kept,
+    answer: answers[0],
+    answers,
     explanation: "",
     reviewVideoUrl: "",
     level: d.level,
@@ -64,8 +69,8 @@ export function parseExamText(raw: string): EditExamQuestion[] {
 
     const ans = trimmed.match(answerRe);
     if (ans && cur) {
-      const idx = letterIndex(ans[1]);
-      if (idx >= 0) cur.answer = idx;
+      const list = ans[1].split(/[\s,;/]+/).map(letterIndex).filter((i) => i >= 0);
+      if (list.length) cur.answers = list;
       continue;
     }
 
@@ -78,7 +83,7 @@ export function parseExamText(raw: string): EditExamQuestion[] {
     const q = trimmed.match(qStartRe);
     if (q && (!cur || mode === "choices" || cur.choices.length > 0 || cur.prompt)) {
       flush(cur, out);
-      cur = { prompt: q[2].trim(), descriptionLines: [], choices: [], answer: 0, level: "mid" };
+      cur = { prompt: q[2].trim(), descriptionLines: [], choices: [], answers: [], level: "mid" };
       mode = "prompt";
       continue;
     }
@@ -96,16 +101,17 @@ export function parseExamText(raw: string): EditExamQuestion[] {
       if (idx >= 0) {
         while (cur.choices.length < idx) cur.choices.push("");
         cur.choices[idx] = text;
-        if (isAnswer) cur.answer = idx;
+        if (isAnswer) cur.answers.push(idx);
       } else {
         cur.choices.push(text);
+        if (isAnswer) cur.answers.push(cur.choices.length - 1);
       }
       mode = "choices";
       continue;
     }
 
     if (!cur) {
-      cur = { prompt: trimmed, descriptionLines: [], choices: [], answer: 0, level: "mid" };
+      cur = { prompt: trimmed, descriptionLines: [], choices: [], answers: [], level: "mid" };
       mode = "prompt";
       continue;
     }

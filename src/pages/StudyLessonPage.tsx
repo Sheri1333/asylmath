@@ -109,7 +109,7 @@ export function StudyLessonPage() {
     : lastInSection && quizOpen
       ? { to: `/tests/${section.id}`, label: "Тақырып тестіне өту" }
       : navigation.nextLessonId
-        ? { to: `/lesson/${navigation.nextLessonId}`, label: "Келесі сабақ" }
+        ? { to: `/lesson/${navigation.nextLessonId}`, label: "Келесі сабаққа өту" }
         : { to: "/course", label: "Курс бағдарламасы" };
 
   function openPractice() {
@@ -194,10 +194,20 @@ export function StudyLessonPage() {
               {lessonQuiz.result ? ` · үздік нәтиже ${lessonQuiz.result.best}/${lessonQuiz.result.total}` : ""}
             </small>
           </div>
-          <Link to={`/tests/lesson/${lesson.id}`} className="qz-next">
-            {lessonQuiz.result?.passed ? "Тестті қайталау" : "Тестті бастау"}
-            <Icon name="arrow_forward" size={16} />
-          </Link>
+          {lessonQuiz.result?.passed ? (
+            <div className="les-quiz__acts">
+              <Link to={next.to} className="qz-next">
+                {next.label}
+                <Icon name="arrow_forward" size={16} />
+              </Link>
+              <Link to={`/tests/lesson/${lesson.id}`} className="qz-prev">Тестті қайталау</Link>
+            </div>
+          ) : (
+            <Link to={`/tests/lesson/${lesson.id}`} className="qz-next">
+              Тестті бастау
+              <Icon name="arrow_forward" size={16} />
+            </Link>
+          )}
         </article>
       )}
     </>

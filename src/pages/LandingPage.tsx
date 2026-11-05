@@ -56,10 +56,10 @@ const perks = [
 
 function Brand() {
   return (
-    <Link to="/" className="lp-brand" aria-label="MATH ASYL, басты бет">
+    <Link to="/" className="lp-brand" aria-label="ASYL MATH, басты бет">
       <img src="/assets/logo.png" alt="" />
       <span>
-        MATH ASYL
+        ASYL MATH
         <small>ҰБТ математика</small>
       </span>
     </Link>
@@ -180,7 +180,7 @@ export function LandingPage() {
   const root = useReveal();
 
   useEffect(() => {
-    document.title = "MATH ASYL — ҰБТ математикасына дайындық";
+    document.title = "ASYL MATH — ҰБТ математикасына дайындық";
   }, []);
 
   useEffect(() => {
@@ -253,7 +253,7 @@ export function LandingPage() {
 
         <section className="lp-sec" id="why">
           <div className="lp-wrap">
-            <Head pill="Неге MATH ASYL" sub="Видео, тест және талдау бір жүйеде: не білетініңді және нені қайталау керегін нақты көресің.">
+            <Head pill="Неге ASYL MATH" sub="Видео, тест және талдау бір жүйеде: не білетініңді және нені қайталау керегін нақты көресің.">
               Бұл жай видео емес, бұл <span className="lp-grad">жүйелі дайындық</span>
             </Head>
             <div className="lp-cards4">
@@ -384,7 +384,7 @@ export function LandingPage() {
             <span>Күн сайын 9:00–20:00</span>
             <Link to={join} className="lp-btn lp-btn--coral">Курсқа жазылу<span className="lp-btn__arrow"><Icon name="arrow_forward" size={16} /></span></Link>
           </div>
-          <p className="lp-foot__copy">© 2026 MATH ASYL. Барлық құқықтар қорғалған.</p>
+          <p className="lp-foot__copy">© 2026 ASYL MATH. Барлық құқықтар қорғалған.</p>
         </div>
       </footer>
 

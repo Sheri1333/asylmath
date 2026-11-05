@@ -657,3 +657,4 @@ a.exam-card:hover .exam-card__cta { background: var(--navy); color: #fff; }
   .exam-card__cal b { font-size: 20px; }
   .exam-card__cta { grid-column: 2; justify-self: start; margin-top: 2px; }
 }
+.les-quiz__acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

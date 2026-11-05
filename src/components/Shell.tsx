@@ -56,7 +56,7 @@ export function Shell({
 
   const pageTitle = trail[trail.length - 1]?.label;
   useEffect(() => {
-    document.title = pageTitle ? `${pageTitle} — MATH ASYL` : "MATH ASYL";
+    document.title = pageTitle ? `${pageTitle} — ASYL MATH` : "ASYL MATH";
   }, [pageTitle]);
 
   function out() {
@@ -72,7 +72,7 @@ export function Shell({
             <Link to="/" className="side__brand">
               <span className="side__logo side__logo--calc"><Icon name="calculate" size={22} /></span>
               <span>
-                <strong>MATH ASYL</strong>
+                <strong>ASYL MATH</strong>
                 <small>ҰБТ Математика</small>
               </span>
             </Link>
@@ -80,7 +80,7 @@ export function Shell({
             <Link to="/" className="side__brand side__brand--study">
               <span className="side__logo">M</span>
               <span>
-                <strong>MATH ASYL</strong>
+                <strong>ASYL MATH</strong>
                 <small>ҰБТ дайындық</small>
               </span>
             </Link>
@@ -129,7 +129,7 @@ export function Shell({
         <Link to="/" className="top__mbrand">
           <span className="side__logo">M</span>
           <span>
-            <strong>MATH ASYL</strong>
+            <strong>ASYL MATH</strong>
             <small>{subtitle}</small>
           </span>
         </Link>
